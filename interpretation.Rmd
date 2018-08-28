@@ -1,0 +1,45 @@
+---
+title: Include Markdown
+author: Nikita Platonov
+bibliography: ./science/_demography.bib
+link-citations: true
+csl: C:/platt/R/style/platt.csl
+---
+
+```{r setup,include=FALSE}
+only <- !exists("input")
+if (only) {
+   source("./main.R")
+   input <- randomize()
+}
+'citep' <- function(ref) paste0("[@",ref,"]")
+'citet' <- function(ref) paste0("@",ref,"")
+```
+
+## Polar Bear Demography
+
+*License: MIT*
+
+This is a simulator of polar bear lifespan based on certain demographical parameters.
+
+In scenario, maximal age is `r input$max.age` years.
+
+
+```{r p3, echo=FALSE, fig.cap="Fig.3. Enjoy!"}
+a <- try(analysis())
+if (!inherits(a,"try-error"))
+   print(analysis()$p3)
+```
+
+Life expectancy in the wild can be as long as 30 years. In captivity, life expectancy can reach 40 years.
+
+Females reach maturity at 4 to 6 years. Polar bears mate from late March to late May, and cubs are born between late November and early January. Litter size ranges from 1 to 3 cubs; two is most common. Cubs remain with their mothers until they are two-and-a-half years of age. (In western Hudson Bay , some females used to wean cubs at 1.5 years).
+
+
+Polar bears in the wild can live to be 30 years of age, but this is rare. Most adults die before they reach 25 years.
+
++ Every year some bears are destroyed as "problem bears" around Churchill. (J30.63.w2, [@Lunn_1985])
+
++ A female and her cubs died when their den collapsed. (J343.44.w1, @Clarkson_1991 wrote about it)
+
+---
