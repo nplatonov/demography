@@ -5,6 +5,7 @@ suppressMessages({
    require(ggplot2)
 })
 source("./main.R")
+height <- c("180px","247px")[2]
 'about' <- function() {
    HTML(
         '<center><img src="www/salmon.png" width="200"><p/><p/>',
@@ -100,8 +101,17 @@ ui <- dashboardPage(skin = "purple"
                         margin-left: 0px;
                         margin-right: 0px;
                      }
+                     .simulate-button {
+                       /* font-size: 1.3em; */
+                        border: 0px solid green;
+                        background-color: #FFFFFF7F;
+                        padding: 3px;
+                     }
                      #menuhead {
                         width:600px;
+                     }
+                     .zzzemptymargin {
+                        font-size: 0.3em;
                      }
                   </style>'
                )
@@ -112,8 +122,8 @@ ui <- dashboardPage(skin = "purple"
               # )
               # ,box(NULL,id="menuhead",width=10
                   ,column(1
-                     ,img(src="http://www.sevin.ru/menues1/institute_logo.gif"
-                         ,width=16)
+                    # ,img(src="http://www.sevin.ru/menues1/institute_logo.gif"
+                    #     ,width=16)
                      ,actionLink("about2",""
                                 ,icon=icon("info-circle"))
                   )
@@ -123,7 +133,9 @@ ui <- dashboardPage(skin = "purple"
                   )
                   ,column(2
                      ,actionLink("simulate", "Simulate"
-                                ,icon=icon("angle-double-right"))
+                                ,icon=icon("angle-double-right")
+                                ,class="simulate-button"
+                                )
                   )
                   ,column(2
                      ,actionLink("randomize2","Randomize simulation"
@@ -131,12 +143,12 @@ ui <- dashboardPage(skin = "purple"
                   )
               # )
             )
-            ,fluidRow(NULL
+            ,fluidRow(NULL,class="emptymargin"
                ,br()
             )
             ,fluidRow(NULL
                ,tabBox(width=12,title = "",id = "tabset1", selected="Inputs"
-                  ,tabPanel("Input",value="Inputs",icon=icon("align-left")
+                  ,tabPanel("Input",value="Inputs"#,icon=icon("align-left")
                      # width=4,
                      ,fluidRow(NULL
                         ,column(3
@@ -303,7 +315,7 @@ ui <- dashboardPage(skin = "purple"
                         )
                      )
                   ) ## tabPanel
-                  ,tabPanel("",value="Check",icon=icon("eye")
+                  ,tabPanel(title="Check",value="Check"#,icon=icon("eye")
                     # width=4,
                     # status = "warning", solidHeader = !TRUE,
                     # collapsible = !TRUE,collapsed=!FALSE,
@@ -317,34 +329,39 @@ ui <- dashboardPage(skin = "purple"
                         )
                      )
                   )
-                  ,tabPanel(title="Output",value="Results",icon=icon("signal")
+                  ,tabPanel(title="Results",value="Results"#,icon=icon("signal")
                      ,fluidRow(NULL
                         ,column(3,
-                           plotOutput("plotAgeStructure",height="247px")
+                           plotOutput("plotAgeStructure",height=height)
                         )
                         ,column(3,
-                           plotOutput("plotPopSize",height="247px")
+                           plotOutput("plotCubs",height=height)
                         )
-                        ,column(3,
-                           plotOutput("plotInterbirth",height="247px")
+                        ,column(2,
+                           plotOutput("plotInterbirth",height=height)
                         )
-                        ,column(3,
-                           plotOutput("plotDens",height="247px")
+                        ,column(2,
+                           plotOutput("plotDens",height=height)
+                        )
+                        ,column(2,
+                           plotOutput("plotAdults",height=height)
                         )
                      )
                      ,fluidRow(NULL
-                        ,column(4,
-                           plotOutput("plotCubs",height="247px")
+                        ,column(3,
+                           plotOutput("plotPopSize",height=height)
                         )
-                        ,column(4,
-                           plotOutput("plotAdults",height="247px")
+                        ,column(2,
+                           plotOutput("plotLitterSize",height=height)
                         )
                      )
+                     ,fluidRow(NULL
+                     )
                   )
-                  ,tabPanel("",value="Verbatim",icon=icon("terminal")
-                     ,verbatimTextOutput("interim")
-                  )
-                  ,tabPanel("",value="Interpretation",icon=icon("list")
+                  ##~ ,tabPanel("",value="Verbatim",icon=icon("terminal")
+                     ##~ ,verbatimTextOutput("interim")
+                  ##~ )
+                  ,tabPanel(title="Details",value="Interpretation" #,icon=icon("list")
                      ,fluidRow(NULL 
                        # ,box(width=12
                            ,column(2)
@@ -465,11 +482,37 @@ server <- function(input, session, output) {
                                 ,k1=k1d,k2=k2)
       indep.mortality=mortalityIndep(mortality,k1=k1i,k2=k2)
       age <- seq(max.age)
-      da <- data.frame(age=age,mortality=mortality)
-      tube <- ggplot(da,aes(age,mortality))
-      tube <- tube+geom_point()+geom_line()
-      tube <- tube+xlab("Age")+ylab("Mortality")
-      tube <- tube+theme(panel.background=element_rect(fill="#F39C1240"))
+      st <- c('indep'="Independent Youngs",'dep'="Dependent Youngs"
+             ,'adult'="Adults")
+      da1 <- data.frame(age=age,mortality=mortality
+                       ,status=unname(st["dep"]))
+      da2 <- data.frame(age=age,mortality=c(indep.mortality,tail(mortality,-3))
+                       ,status=unname(st["indep"]))
+     # print(da1[1:4,])
+     # print(da2[1:4,])
+     # comb.mortality <- mortality
+     # indep.fraction <- c(C0=0.001,C1=indep.C1,C2=0.99)
+     # comb.mortality[1:3] <- mortality[1:3]*(1-indep.fraction)+
+     #                        indep.mortality[1:3]*indep.fraction
+     # da3 <- data.frame(age=age,mortality=comb.mortality
+     #                  ,status="Combines")
+     # print(da3[1:4,])
+      da4 <- data.frame(age=tail(age,-3),mortality=tail(mortality,-3)
+                       ,status=unname(st["adult"]))
+      da <- rbind(da1,da2,da4)
+      da$status <- factor(da$status,levels=st,ordered=TRUE)
+      tube <- ggplot(da,aes(age,mortality,colour=status))+
+         geom_point()+geom_line()+
+         xlab("Age")+ylab("Mortality")+
+        # scale_colour_manual(values=c("indianred2","seagreen3","sienna3"))+
+         scale_colour_hue()+
+         guides(colour=guide_legend(title=""))+
+         theme(legend.pos=c(0.25,0.85))+
+         theme(legend.background=element_rect(fill="transparent"))+
+         theme(legend.key=element_rect(fill="transparent",colour="transparent"))+
+        # theme(legend.box.background=element_rect(fill="transparent"))+
+         theme(panel.background=element_rect(fill="#428BCA40"))+
+         NULL
       init.den <- input$init.den
       list(mortality=mortality
           ,indep.mortality=indep.mortality
@@ -581,10 +624,12 @@ server <- function(input, session, output) {
          HTML(a2)
       }
       else {
-         a1 <- rmarkdown::render('interpretation.Rmd',rmarkdown::html_fragment())
-         str(a1)
-         a2 <- scan(a1,what=character(),encoding="UTF-8")
-         file.remove(a1)
+         a1 <- tempfile()
+         rmarkdown::render('interpretation.Rmd'
+                          ,output_format=rmarkdown::html_fragment()
+                          ,output_file=a1,quiet=TRUE)
+         a2 <- scan(a1,what=character(),encoding="UTF-8",quiet=TRUE)
+        # file.remove(a1)
          HTML(a2)
       }
    })
@@ -635,6 +680,22 @@ server <- function(input, session, output) {
    })
    output$plotAdults <- renderPlot({
       analysis()$p4
+   })
+   output$plotP7a <- renderPlot({
+      res <- analysis()
+      res$p7+facet_grid(age~.)+res$p0
+   })
+   output$plotP7b <- renderPlot({
+      res <- analysis()
+      res$p7+facet_grid(.~age)+res$p0
+   })
+   output$plotLitterSize <- renderPlot({
+      res <- analysis()
+      res$p8+facet_grid(.~age)+res$p0
+   })
+   output$plotP8b <- renderPlot({
+      res <- analysis()
+      res$p8+facet_grid(age~.)+res$p0
    })
 }
 ## local

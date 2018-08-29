@@ -32,8 +32,8 @@
       print(pop2[indP,])
       q()
    }
-   pop$child <- 0
-   pop$child[indP] <- pa[indC]
+   pop$child <- 0L
+   pop$child[indP] <- as.integer(pa[indC])
   # if (length(ind2))
   #    pop$parent[ind2] <- NA
    indL <- which(!(pop$parent %in% pop$id) & !is.na(pop$parent))
@@ -345,7 +345,7 @@
       seed2 <- init$seed2
    if (sexratio>1)
       sexratio <- sexratio/100
-   nepoch <- max.age+50
+   nepoch <- max.age+150
    print(data.frame(max.age=max.age,litter=litter,sex=sexratio
                    ,dens=init.den,pregn=pregnant
                    ,mCOY=mortality.cub,mAdult=mortality.adult
@@ -384,7 +384,7 @@
    peer0 <- round(init.den*litter)
   # print(c('spring 0+'=peer0+sum(df1$peer),'spring 1+'=sum(df1$peer)))
   # print(head(df1,12),digits=3)
-   age1 <- age[-1]
+   age1 <- as.integer(age[-1])
    daM <- data.frame(age=age1,peer=NA)
    daM$peer <- round(df1$peer[na.omit(match(daM$age,df1$age))]*(1-sexratio))
    daF <- data.frame(age=age1
@@ -404,19 +404,20 @@
    daF$fert <- daF$fert/max(daF$fert)
    daF$fert <- round(daF$fert,3)
    daF$peer <- c(round(df1$peer[na.omit(match(daF$age,df1$age))]*sexratio))
-   popF <- data.frame(id=NA,epoch=NA,born=NA,sex="F",age=rep(daF$age,daF$peer)
-                     ,child=0,parent=NA,omit=FALSE)
-   popM <- data.frame(id=NA,epoch=NA,born=NA,sex="M",age=rep(daM$age,daM$peer)
-                     ,child=0,parent=NA,omit=FALSE)
+   popF <- data.frame(id=NA,epoch=0L,season=0L,born=NA,sex="F"
+                     ,age=rep(daF$age,daF$peer),child=0L,parent=NA,omit=FALSE)
+   popM <- data.frame(id=NA,epoch=0L,season=0L,born=NA,sex="M"
+                     ,age=rep(daM$age,daM$peer),child=0L,parent=NA,omit=FALSE)
    pop <- rbind(popM,popF)
    pop$id <- makeID(nrow(pop))
-   base <- 2018-nepoch
-   pop$epoch <- 0
+   base <- as.integer(2018-nepoch)
+  # pop$epoch <- 0L
    pop$born <- base-pop$age
    lifestory <- NULL
-   lifestory <- vector("list",2*(nepoch+1))
-   names(lifestory) <- format(seq(2*(nepoch+1))/2-0.5)
-   lifecut <- 1
+   ns <- 3
+   lifestory <- vector("list",ns*(nepoch+1))
+  # names(lifestory) <- format(seq(ns*(nepoch+1))/ns-0.5)
+   lifecut <- 1L
    isProgressBar <- TRUE
    isShiny <- ("shiny" %in% loadedNamespaces())
    if (isProgressBar) {
@@ -427,9 +428,9 @@
          pb$set(message = "", value = 0)
       }
    }
-   for (epoch in c(0,seq(nepoch))) {
+   for (epoch in c(0L,seq(nepoch))) {
       pop <- repairFamily(pop)
-      verbose <- F & epoch %in% c(nepoch-c(1,0))
+      verbose <- T & epoch %in% c(nepoch-c(1,0))
       if (isProgressBar) {
          if (!isShiny)
             tcltk::setTkProgressBar(pb,epoch,label=paste("Epoch",epoch))
@@ -535,10 +536,10 @@
       nM <- length(sexCOY[sexCOY=="M"])
       if (verbose)
          print(table(sexCOY))
-      popF0 <- data.frame(id=NA,epoch=epoch,born=base+epoch,sex="F",age=rep(0,nF)
-                        ,child=0,parent=NA,omit=FALSE)
-      popM0 <- data.frame(id=NA,epoch=epoch,born=base+epoch,sex="M",age=rep(0,nM)
-                        ,child=0,parent=NA,omit=FALSE)
+      popF0 <- data.frame(id=NA,epoch=epoch,season=0L,born=base+epoch,sex="F"
+                         ,age=rep(0L,nF),child=0L,parent=NA,omit=FALSE)
+      popM0 <- data.frame(id=NA,epoch=epoch,season=0L,born=base+epoch,sex="M"
+                         ,age=rep(0L,nM),child=0L,parent=NA,omit=FALSE)
      # print(nrow(pop))
       pop0 <- rbind(popM0,popF0)
       pop0$id <- makeID(nrow(pop0))
@@ -651,10 +652,10 @@
       }
      # p <- unname(table(as.integer(F0)))
      # p <- round(p/sum(p),3)
+      pop$season <- 0L
       lifestory[[lifecut]] <- pop
       lifecut <- lifecut+1L
-      pop$age <- pop$age+1
-      pop$epoch <- pop$epoch+0.5
+      pop$age <- pop$age+1L
       ind <- which(pop$age>max.age)
       if (length(ind))
          pop$omit[ind] <- TRUE
@@ -673,7 +674,7 @@
          if ((verbose)&&(i==3))
             print(c(i=i,n1=n1,n2=n2,n=length(ind2)))
          nchild <- sum(pop$child[ind2])
-         pop$child[ind2] <- 0
+         pop$child[ind2] <- 0L
          ind3 <- which(pop$parent %in% pop$id[ind2])
          pop$parent[ind3] <- NA
         # pop <- repairFamily(pop)
@@ -730,11 +731,18 @@
          pop$omit[ind2] <- TRUE
          pop$parent[ind2] <- NA
       }
+      
+      pop1 <- pop[pop$omit,]
+      pop1$season <- 9L
+      lifestory[[lifecut]] <- pop1
+      lifecut <- lifecut+1L
+      
       pop <- pop[!pop$omit,]
       pop <- repairFamily(pop)
+      pop$season <- 1L
       lifestory[[lifecut]] <- pop
       lifecut <- lifecut+1L
-      pop$epoch <- pop$epoch+0.5
+      pop$epoch <- pop$epoch+1L
       if (F & verbose)
          print(sum(pop$child))
       for (a in c(1,2)) {
@@ -761,7 +769,7 @@
       if (verbose)
          print(nrow(pop))
       size.ls <- c(object.size(lifestory)*2^(-20))
-      if (size.ls>30) {
+      if (size.ls>35) {
         # nepoch <- epoch+2
          break
       }
@@ -784,12 +792,15 @@
       LS[k1:k2,] <- lifestory[[i]]
       k1 <- k2+1
    }
+   LS$omit <- NULL
+   rownames(LS) <- NULL
    LS
 }
 'analyze' <- function(lifestory) {
    require(ggplot2)
    epoch <- sort(unique(lifestory$epoch))
-   ns <- length(unique(epoch %% 1))
+   season <- sort(unique(lifestory$season))
+   ns <- length(season)
    max.age <- max(lifestory$age)
    subad.ini <- 3
    col.base <- c(green="#3C8D8C",blue="#428BCA",purpur="#605CA8"
@@ -797,13 +808,40 @@
    col.bg <- paste0(col.base,"40")
    col.hist <- paste0(col.base,"80")
    col.line <- paste0(col.base,"80")
-   p0 <- theme_grey(base_size=ifelse(isShiny,12,24))+
-         theme(panel.background=element_rect(fill=col.bg))
-   p6 <- p5 <- p4 <- p3 <- p2 <- p1 <- NULL
+   col.strip <- paste0(col.base,"60")
+   p0 <- theme_grey()+
+         theme(panel.background=element_rect(fill=col.bg))+
+         theme(strip.background=element_rect(fill=col.strip))+#,colour="red"))
+         theme(legend.margin=margin(t=-1,b=0,unit='char'))
+        # theme(legend.key.size=size(1,unit="char"))
+   p8 <- p7 <- p6 <- p5 <- p4 <- p3 <- p2 <- p1 <- NULL
   # pdf("res1.pdf",width=8,height=4)
+   res <- NULL
+   if (TRUE) {
+      pop <- lifestory[lifestory$epoch>c(0,max.age)[2] &
+                       lifestory$epoch<=max(epoch)-0*4 &
+                       lifestory$season==0,]
+      age <- c('2Yr'=2,'1Yr'=1,'0Yr'=0)
+      for (i in seq_along(age)) {
+         pop1 <- pop[pop$age==age[i] & !is.na(pop$parent),]
+         res2 <- aggregate(pop1$parent,list(epoch=pop1$epoch),function(x) {
+            lf <- table(table(x))
+            lf <- unname(lf/sum(lf))
+            while (length(lf)<3) lf <- c(lf,0)
+            lf
+         })
+         L <- apply(res2[,-1],1,function(x) sum(x*seq_along(x)))
+         lab <- sprintf("%s\n%.2f\u00B1%.2f",names(age[i]),mean(L),sd(L))
+         res2 <- cbind(data.frame(age=lab,epoch=res2$epoch),res2[,-1])
+         res <- rbind(res,tidyr::gather(res2,cubs,value,-epoch,-age))
+      }
+      p7 <- ggplot(res,aes(epoch,value,colour=cubs))+geom_line()
+      p8 <- ggplot(res,aes(cubs,value))+geom_violin()+
+            xlab("Litter Size")+ylab("Proportion")
+   }
    if (TRUE) {
       epoch <- epoch[(epoch*ns) %% ns == 0 & epoch>=max(lifestory$age)-4]
-      pop <- lifestory[lifestory$epoch %in% epoch,]
+      pop <- lifestory[lifestory$epoch %in% epoch & lifestory$season==0,]
       a1 <- aggregate(id~age+epoch,data=pop,length)
       colnames(a1)[ncol(a1)] <- "size"
       p6 <- ggplot(a1,aes(age,size))+
@@ -814,11 +852,9 @@
    }
    if (TRUE) {
       res <- NULL
-      for (k in seq_len(ns)) {
-         s <- k-1
+      for (s in c(0,1)) {
          season <- ifelse(s==0,"After COY","Before COY")
-         ind <- which(round(lifestory$epoch*ns) %% ns == s) ## 0 - with C0, 1 - without C0
-         pop <- lifestory[ind,]
+         pop <- lifestory[which(lifestory$season==s),] ## 0 - with C0, 1 - without C0
          epoch <- sort(unique(pop$epoch))
          res2 <- data.frame(epoch=epoch,size=NA,era="",season=season
                            ,stringsAsFactors=FALSE)
@@ -851,8 +887,7 @@
      # p5 <- ggplot(res,aes(epoch,size,colour=era))+facet_grid(season~.)+
      #       geom_line()
       p5 <- ggplot(res,aes(epoch,size))+
-            geom_line(aes(colour=era,linetype=season)
-                     ,size=ifelse(isShiny,1,1.5))+
+            geom_line(aes(colour=era,linetype=season))+
             xlab("Epoch")+ylab("Population Size")+
            # scale_y_contionuos()
             ylim(0,max(res$size))+
@@ -865,11 +900,16 @@
             NULL
    }
    if (TRUE) {
+      done <- lifestory$id[lifestory$season==9]
+     # print(lifestory[ind,])
+     # print(lifestory[lifestory$id=="dphefunx",])
      # ind <- which(epoch>=c(0,max.age)[2] & round(epoch*ns) %% ns == 0)
      # pop <- do.call("rbind",lifestory[ind])
       pop <- lifestory[lifestory$epoch>c(0,max.age)[2] &
-                       lifestory$epoch<=max(epoch)-0*4 &
-                       round(lifestory$epoch*ns) %% ns == 0,]
+                      # lifestory$epoch<=max(epoch)-0*4 &
+                       lifestory$season == 0 &
+                      # lifestory$id %in% done &
+                      1,]
       rownames(pop) <- NULL
       if (TRUE) {
          ind <- which(!is.na(pop$parent) & pop$age==0)
@@ -888,10 +928,9 @@
          print(summary(reprod.cycle))
          p1 <- ggplot(data.frame(v=reprod.cycle),aes(v))+
                geom_histogram(binwidth=1,fill=col.hist)+
-               geom_vline(xintercept=mean(reprod.cycle),col=col.line
-                         ,size=ifelse(isShiny,1,2))+
+               geom_vline(xintercept=mean(reprod.cycle),col=col.line)+
                geom_vline(xintercept=median(reprod.cycle),col=col.line
-                         ,size=ifelse(isShiny,1.25,2),linetype=2)+
+                         ,size=1.25,linetype=2)+
                scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
                xlab("Interbirth, years")+ylab("Count")+
                p0
@@ -937,30 +976,38 @@
             print(table(adults))
          }
          print(summary(res))
+         dens <- rep("",length(res$dens))
+         dens[res$dens==1] <- "single"
+         dens[res$dens==0] <- "none"
+         dens[res$dens>1] <- "multiple"
+         tden <- table(dens)
+         tden <- round(100*tden/sum(tden),1)
+         print(tden)
+         adults <- res$adults
+         tadult <- table(adults)
+         tadult <- round(100*tadult/sum(tadult),1)
+         print(tadult)
          p2 <- ggplot(res,aes(dens))+
                geom_histogram(binwidth=1,fill=col.hist)+
-               geom_vline(xintercept=mean(res$dens),col=col.line
-                         ,size=ifelse(isShiny,1,2))+
+               geom_vline(xintercept=mean(res$dens),col=col.line)+
                geom_vline(xintercept=median(res$dens),col=col.line
-                         ,size=ifelse(isShiny,1,2),linetype=2)+
+                         ,linetype=2)+
                scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
                xlab("Dens during lifespan")+ylab("Count")+
                p0
          p3 <- ggplot(res,aes(cubs))+
                geom_histogram(binwidth=1,fill=col.hist)+
-               geom_vline(xintercept=mean(res$cubs),col=col.line
-                         ,size=ifelse(isShiny,1,2))+
+               geom_vline(xintercept=mean(res$cubs),col=col.line)+
                geom_vline(xintercept=median(res$cubs),col=col.line
-                         ,size=ifelse(isShiny,1,2),linetype=2)+
+                         ,linetype=2)+
                scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
                xlab("Cubs during lifespan")+ylab("Count")+
                p0
          p4 <- ggplot(res,aes(adults))+
                geom_histogram(binwidth=1,fill=col.hist)+
-               geom_vline(xintercept=mean(res$adults),col=col.line
-                         ,size=ifelse(isShiny,1,2))+
+               geom_vline(xintercept=mean(res$adults),col=col.line)+
                geom_vline(xintercept=median(res$adults),col=col.line
-                         ,size=ifelse(isShiny,1,2),linetype=2)+
+                         ,linetype=2)+
                scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
                xlab("Survived cubs during lifespan")+ylab("Count")+
                p0
@@ -968,7 +1015,7 @@
      # ursa:::.elapsedTime("C")
      # epoch <- as.numeric(names(lifestory))
    }
-   list(p1=p1,p2=p2,p3=p3,p4=p4,p5=p5,p6=p6)
+   list(p0=p0,p1=p1,p2=p2,p3=p3,p4=p4,p5=p5,p6=p6,p7=p7,p8=p8)
 }
 
 noShiny <- .argv0.()=="demography-main.R"

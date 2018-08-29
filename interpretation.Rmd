@@ -1,19 +1,22 @@
 ---
 title: Include Markdown
 author: Nikita Platonov
-bibliography: ./science/_demography.bib
+bibliography: ./demography.bib
 link-citations: true
-csl: C:/platt/R/style/platt.csl
+csl: https://nplatonov.github.io/platt.csl
 ---
 
 ```{r setup,include=FALSE}
+knitr::opts_chunk$set(fig.align="center",fig.width=6,fig.height=4.8)
 only <- !exists("input")
 if (only) {
    source("./main.R")
    input <- randomize()
+   require(ggplot2)
 }
 'citep' <- function(ref) paste0("[@",ref,"]")
 'citet' <- function(ref) paste0("@",ref,"")
+p0 <- theme(text=element_text(size=9))
 ```
 
 ## Polar Bear Demography
@@ -28,7 +31,7 @@ In scenario, maximal age is `r input$max.age` years.
 ```{r p3, echo=FALSE, fig.cap="Fig.3. Enjoy!"}
 a <- try(analysis())
 if (!inherits(a,"try-error"))
-   print(analysis()$p3)
+   print(analysis()$p3+p0)
 ```
 
 Life expectancy in the wild can be as long as 30 years. In captivity, life expectancy can reach 40 years.

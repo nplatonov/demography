@@ -1,12 +1,6 @@
-dev/
-general/
-RefManageR_issue/
-riskman/
-salmon-master/
-science/
-www/
+*/
 
-
+*.Rout
 *.html
 *.pdf
 *.link
