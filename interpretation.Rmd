@@ -19,9 +19,9 @@ if (only) {
 p0 <- theme(text=element_text(size=9))
 ```
 
-## Polar Bear Demography
+*Mockup for more details of 'Result'*
 
-*License: MIT*
+## Polar Bear Demography
 
 This is a simulator of polar bear lifespan based on certain demographical parameters.
 

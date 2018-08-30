@@ -6,8 +6,14 @@
 
 This is a simulator of polar bear lifespan based on certain demogrpaphical parameters.
 
-Is it possible to use dynamic values? Using `includeMardown()` -- no!
+'Randomize scenario' defines new set of demographical parameters.
+
+'Randomize simulation' does not change inputs;
+it is used for occassional selection, which individual will survive, mate, *etc*.
 
 
+#### Disclaimer
 
+On the current state of project,
+the results cannot be used as an argument for certain polar bear population management.
 

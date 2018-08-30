@@ -2,9 +2,9 @@ source("./main.R")
 invisible({
   # seed1 <- 179 ## 560 468 786 447 152 335 279 203 649 515 790 829
   # seed2 <- 346  ## (236,441)
-   if (!TRUE) {
+   if (TRUE) {
       if (TRUE) {
-         lifestory <- simulate(seed1=809,seed2=NA)
+         lifestory <- simulate(seed1=193,seed2=NA)
       }
       else
          lifestory <- simulate(
@@ -19,6 +19,8 @@ invisible({
    }
    else
       lifestory <- readRDS("lifestory.rds")
+  # LS <- lifestory[lifestory$epoch==max(lifestory$epoch) & lifestory$season==0,]
+  # print(nrow(LS))
   # print(lifestory[lifestory$id=="gdq9gs2e",])
    res <- analyze(lifestory)
    if (!FALSE) {
@@ -37,3 +39,4 @@ invisible({
       })
    }
 })
+warnings()

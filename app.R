@@ -2,32 +2,9 @@ suppressMessages({
    require(shiny)
    require(shinyjs)
    require(shinydashboard)
-   require(ggplot2)
 })
 source("./main.R")
 height <- c("180px","247px")[2]
-'about' <- function() {
-   HTML(
-        '<center><img src="www/salmon.png" width="200"><p/><p/>',
-        readChar("about.txt", file.info("about.txt")$size),
-        '<small><div>Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-        </small><p/></center>'
-       )
-}
-'details' <- function(name) {
-  page <- fluidRow(
-    tabBox(
-      title = tools::toTitleCase(name), side = "right", width = 12, selected = "Charts",
-      id = paste0("tabset.", name)
-     # tabPanel("Summary", tab.summary(name = name)),
-     # tabPanel("Charts", tab.charts(name)),
-     # tabPanel("Raw data (RES)", tab.raw.res(name = name)),
-     # tabPanel("Raw data (VAC)", tab.raw.vac(name = name))
-    ))
-  
-  return(page)
-}
-
 ui <- dashboardPage(skin = "purple"
    ,dashboardHeader(title = "Polar Bear Demography",disable=TRUE,titleWidth = 350)
    ,dashboardSidebar(NULL
@@ -66,7 +43,6 @@ ui <- dashboardPage(skin = "purple"
    ,dashboardBody(id = "resetable"
      # ,tags$script(HTML("$('body').addClass('sidebar-mini');"))
       ,tabItems(
-        # tabItem(tabName="dev",about()),
          tabItem(tabName="about"
             ,actionLink("gotomainTop", "Simulation",icon=icon("angle-double-left"))
             ,br()
@@ -163,12 +139,13 @@ ui <- dashboardPage(skin = "purple"
                         )
                         ,column(3
                            ,sliderInput("init.den", "Initial number of dens"
-                                       ,min=10, max=400,value=init$init.den,step=1,sep=""
+                                       ,min=10, max=200,value=init$init.den,step=1,sep=""
                                        )
                         )
                         ,column(3
-                               ##~ textInput("init.den.text", "Initial number of dens"
-                                        ##~ ,value="100")
+                           ,sliderInput("fertility", "Age specific fertility"
+                                       ,min=0, max=1,value=init$fertility,step=0.01,sep=""
+                                       )
                         )
                      )
                      ,fluidRow(NULL
@@ -264,9 +241,9 @@ ui <- dashboardPage(skin = "purple"
                               "Litter size proportions:"
                            )
                            ,fluidRow(NULL
-                              ,column(4,numericInput("C1", "1C",litterF[1],step=0.001))
-                              ,column(4,numericInput("C2", "2C",litterF[2],step=0.001))
-                              ,column(4,numericInput("C3", "3C",litterF[3],step=0.001))
+                              ,column(4,numericInput("C1", "1C",init$litterF[1],step=0.001))
+                              ,column(4,numericInput("C2", "2C",init$litterF[2],step=0.001))
+                              ,column(4,numericInput("C3", "3C",init$litterF[3],step=0.001))
                            )
                            ##~ ,fluidRow(NULL
                               ##~ ,column(4,textInput("C1", "1C",litterF[1]))
@@ -321,18 +298,21 @@ ui <- dashboardPage(skin = "purple"
                     # collapsible = !TRUE,collapsed=!FALSE,
                     # height = "350px",
                      ,fluidRow(NULL
-                        ,column(6,
+                        ,column(4,
                            plotOutput("curve.lin")
                         )
-                        ,column(6,
+                        ,column(4,
                            plotOutput("curve.log")
+                        )
+                        ,column(4,
+                           plotOutput("curve.fert")
                         )
                      )
                   )
                   ,tabPanel(title="Results",value="Results"#,icon=icon("signal")
                      ,fluidRow(NULL
                         ,column(3,
-                           plotOutput("plotAgeStructure",height=height)
+                           plotOutput("plotPopSize",height=height)
                         )
                         ,column(3,
                            plotOutput("plotCubs",height=height)
@@ -349,7 +329,7 @@ ui <- dashboardPage(skin = "purple"
                      )
                      ,fluidRow(NULL
                         ,column(3,
-                           plotOutput("plotPopSize",height=height)
+                           plotOutput("plotAgeStructure",height=height)
                         )
                         ,column(2,
                            plotOutput("plotLitterSize",height=height)
@@ -482,44 +462,16 @@ server <- function(input, session, output) {
                                 ,k1=k1d,k2=k2)
       indep.mortality=mortalityIndep(mortality,k1=k1i,k2=k2)
       age <- seq(max.age)
-      st <- c('indep'="Independent Youngs",'dep'="Dependent Youngs"
-             ,'adult'="Adults")
-      da1 <- data.frame(age=age,mortality=mortality
-                       ,status=unname(st["dep"]))
-      da2 <- data.frame(age=age,mortality=c(indep.mortality,tail(mortality,-3))
-                       ,status=unname(st["indep"]))
-     # print(da1[1:4,])
-     # print(da2[1:4,])
-     # comb.mortality <- mortality
-     # indep.fraction <- c(C0=0.001,C1=indep.C1,C2=0.99)
-     # comb.mortality[1:3] <- mortality[1:3]*(1-indep.fraction)+
-     #                        indep.mortality[1:3]*indep.fraction
-     # da3 <- data.frame(age=age,mortality=comb.mortality
-     #                  ,status="Combines")
-     # print(da3[1:4,])
-      da4 <- data.frame(age=tail(age,-3),mortality=tail(mortality,-3)
-                       ,status=unname(st["adult"]))
-      da <- rbind(da1,da2,da4)
-      da$status <- factor(da$status,levels=st,ordered=TRUE)
-      tube <- ggplot(da,aes(age,mortality,colour=status))+
-         geom_point()+geom_line()+
-         xlab("Age")+ylab("Mortality")+
-        # scale_colour_manual(values=c("indianred2","seagreen3","sienna3"))+
-         scale_colour_hue()+
-         guides(colour=guide_legend(title=""))+
-         theme(legend.pos=c(0.25,0.85))+
-         theme(legend.background=element_rect(fill="transparent"))+
-         theme(legend.key=element_rect(fill="transparent",colour="transparent"))+
-        # theme(legend.box.background=element_rect(fill="transparent"))+
-         theme(panel.background=element_rect(fill="#428BCA40"))+
-         NULL
+      tube <- mortalityTubePlot(age,mortality,indep.mortality)
       init.den <- input$init.den
       list(mortality=mortality
           ,indep.mortality=indep.mortality
           ,mortality.cub=input$mortality.cub
           ,mortality.adult=input$mortality.adult
           ,age=age
-          ,tube=tube
+          ,tube.lin=tube
+          ,tube.log=tube+scale_y_log10()
+          ,tube.fert=fertilityCurve(age=age,u=input$fertility,plot=TRUE)
           ,init.den=init.den
           ,litter=input$litter
           ,indep.C1=input$indep.C1
@@ -528,6 +480,7 @@ server <- function(input, session, output) {
           ,sexratio=input$sexratio
           ,seed1=input$seed1
           ,seed2=input$seed2
+          ,fertility=input$fertility
           ,k1d=k1d
           ,k1i=k1i
           ,k2=k2
@@ -561,6 +514,7 @@ server <- function(input, session, output) {
                              ,mortality.cub=mortality.cub
                              ,mortality.adult=mortality.adult
                              ,indep.C1=indep.C1
+                             ,fertility=input$fertility
                              ,k1d=input$k1d
                              ,k1i=input$k1i
                              ,k2=input$k2
@@ -584,8 +538,11 @@ server <- function(input, session, output) {
       updateSliderInput(session,"indep.C1",value=res$indep.C1)
       updateSliderInput(session,"mortality.cub",value=res$mortality.cub)
       updateSliderInput(session,"mortality.adult",value=res$mortality.adult)
+      updateSliderInput(session,"fertility",value=res$fertility)
    })
    observeEvent(input$randomize1, {
+      showNotification(closeButton=FALSE,duration=1
+                      ,paste("Previous scenario:",input$seed1))
       message("*** Randomize scenario")
       res <- randomize(seed1=NA,seed2=NA)
       updateNumericInput(session,"seed1",value=res$seed1)
@@ -598,11 +555,16 @@ server <- function(input, session, output) {
       updateSliderInput(session,"indep.C1",value=res$indep.C1)
       updateSliderInput(session,"mortality.cub",value=res$mortality.cub)
       updateSliderInput(session,"mortality.adult",value=res$mortality.adult)
+      updateSliderInput(session,"fertility",value=res$fertility)
+     # removeNotification(id="seed1")
    })
    observeEvent(input$randomize2, {
+      showNotification(closeButton=FALSE,duration=1
+                      ,paste("Previous simulation:",input$seed2))
       message("*** Randomize simulation")
       res <- randomize(seed1=input$seed1,seed2=NA)
       updateNumericInput(session,"seed2",value=res$seed2)
+      removeModal()
    })
    observeEvent(input$about2, {
       updateTabItems(session,"tabs","about")
@@ -649,10 +611,13 @@ server <- function(input, session, output) {
    })
    output$curve.lin <- renderPlot({
      # with(params(),plot(age,mortality,type="b"))
-      params()$tube
+      params()$tube.lin
    })
    output$curve.log <- renderPlot({
-      params()$tube+scale_y_log10()
+      params()$tube.log
+   })
+   output$curve.fert <- renderPlot({
+      params()$tube.fert
    })
    analysis <- reactive({
       lifestory <- result()
