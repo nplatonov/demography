@@ -126,7 +126,8 @@ require(ggplot2)
       return(ceiling(amount))
    round(amount)
 }
-'mortalityTube' <- function(max.age,mortality.cub,adult=12,mortality.adult,k1,k2) {
+'mortalityTube' <- function(max.age,mortality.cub,adult=12,mortality.adult
+                           ,k1d,k1i,k2) {
    adult.range <- adult:round(c(0.9,1)[1]*max.age)
    age <- seq(max.age)
    mortality <- rep(NA,length(age))
@@ -139,10 +140,10 @@ require(ggplot2)
    x1 <- 0
    x0l <- age[1]-x1
    x2 <- age[n]-x0l
-   a1 <- (y2-y1)/(x2^k1-x1^k1)
-   b1 <- y1-a1*x1^k1
-  # print(c(k1=k1,x1=x1,x2=x2,y1=y1,y2=y2,a1=a1,b1=b1,x1k=x1^k1,x2k=x2^k1))
-   mortality[1:n] <- a1*(age[n:1]-x0l)^k1+b1
+   a1 <- (y2-y1)/(x2^k1d-x1^k1d)
+   b1 <- y1-a1*x1^k1d
+  # print(c(k1=k1d,x1=x1,x2=x2,y1=y1,y2=y2,a1=a1,b1=b1,x1k=x1^k1d,x2k=x2^k1d))
+   mortality[1:n] <- a1*(age[n:1]-x0l)^k1d+b1
    i1 <- adult
    i2 <- max.age
    x1 <- 0
@@ -153,17 +154,24 @@ require(ggplot2)
    a2 <- (y2-y1)/(x2^k2-x1^k2)
    b2 <- y1-a2*x1^k2
    mortality[i1:i2] <- a2*(age[i1:i2]-x0r)^k2+b2
-  # mortality <- c(a1*((age[n]+1)-x0l)^k1+b1,mortality)
-   mortality
+  # mortality <- c(a1*((age[n]+1)-x0l)^k1d+b1,mortality)
+   indep.mortality <- c(0.999
+                       ,mortality[2]*k1i^0.5
+                       ,mortality[3]*k1i^0.1
+                       ,mortality[4]*k1i^0.05)
+   indep.mortality[indep.mortality>0.999] <- 0.999
+   mortality[4] <- indep.mortality[4]
+   list(depend=mortality,indep=indep.mortality)
 }
-'mortalityTubePlot' <- function(age,mortality,indep.mortality) {
-   if (length(age)==1)
-      age <- seq(age)
+'mortalityTubePlot' <- function(mortality) {
+   indep <- mortality$indep
+   depend <- mortality$depend
+   age <- seq_along(depend)
    st <- c('indep'="Independent Youngs",'dep'="Dependent Youngs"
           ,'adult'="Adults")
-   da1 <- data.frame(age=age,mortality=mortality
+   da1 <- data.frame(age=age,mortality=depend
                     ,status=unname(st["dep"]))
-   da2 <- data.frame(age=age,mortality=c(indep.mortality,tail(mortality,-3))
+   da2 <- data.frame(age=age,mortality=c(head(indep,3),tail(depend,-3))
                     ,status=unname(st["indep"]))
   # print(da1[1:4,])
   # print(da2[1:4,])
@@ -174,7 +182,7 @@ require(ggplot2)
   # da3 <- data.frame(age=age,mortality=comb.mortality
   #                  ,status="Combines")
   # print(da3[1:4,])
-   da4 <- data.frame(age=tail(age,-3),mortality=tail(mortality,-3)
+   da4 <- data.frame(age=tail(age,-3),mortality=tail(depend,-3)
                     ,status=unname(st["adult"]))
    da <- rbind(da1,da2,da4)
    da$status <- factor(da$status,levels=st,ordered=TRUE)
@@ -343,17 +351,6 @@ require(ggplot2)
    ##~ print(GL)
    return(ret)
 }
-'mortalityIndep' <- function(mortality,k1,k2) {
-   k1 <- 3
-   mortality.init <- mortality[1]^1*6
-  # print(mortality[1:4])
-  # print(mortality.init)
-   m2 <- mortalityTube(max.age=6,mortality.cub=mortality.init
-                      ,adult=4,mortality.adult=mortality[6],k1=k1,k2=k2)
-   res <- c(0.999,m2[2:3])
-  # print(res)
-   res
-}
 'randomize' <- function(seed1=NA,seed2=NA,verbose=FALSE) {
    if (is.na(seed1)) {
       seed1 <- sample(100:999,1)
@@ -373,7 +370,7 @@ require(ggplot2)
               ,indep.C1=sample(seq(0.05,0.75,by=0.05),1)
               ,fertility=sample(seq(0.1,1.0,by=0.01),1)
               ,k1d=10
-              ,k1i=3
+              ,k1i=sample(seq(3:18),1)
               ,k2=5
               )
    res$litterF <- litterFraction(res$litter)
@@ -444,8 +441,10 @@ require(ggplot2)
    L <- sum(seq_along(litter)*litter)
    age <- c(0,seq(max.age))
    mortality <- mortalityTube(max.age=max.age,mortality.cub=mortality.cub
-                             ,mortality.adult=mortality.adult,k1=k1d,k2=k2)
-   indep.mortality <- mortalityIndep(mortality,k1=k1i,k2=k2)
+                             ,mortality.adult=mortality.adult
+                             ,k1d=k1d,k1i=k1i,k2=k2)
+   indep.mortality <- mortality$indep
+   mortality <- mortality$depend
    if (FALSE) {
       print(c(mortality[1:2],min(mortality)))
       print(k1)
@@ -829,12 +828,10 @@ require(ggplot2)
          pop$omit[ind2] <- TRUE
          pop$parent[ind2] <- NA
       }
-      
       pop1 <- pop[pop$omit,]
       pop1$season <- 9L
       lifestory[[lifecut]] <- pop1
       lifecut <- lifecut+1L
-      
       pop <- pop[!pop$omit,]
       pop <- repairFamily(pop)
       pop$season <- 1L
@@ -911,13 +908,47 @@ require(ggplot2)
          theme(strip.background=element_rect(fill=col.strip))+#,colour="red"))
          theme(legend.margin=margin(t=-1,b=0,unit='char'))
         # theme(legend.key.size=size(1,unit="char"))
-   p8 <- p7 <- p6 <- p5 <- p4 <- p3 <- p2 <- p1 <- NULL
+   p9 <- p8 <- p7 <- p6 <- p5 <- p4 <- p3 <- p2 <- p1 <- NULL
   # pdf("res1.pdf",width=8,height=4)
    res <- NULL
+   if (TRUE) {
+     # print(tail(lifestory[lifestory$season==9,],100))
+     # str(lifestory[lifestory$season==9 & lifestory$epoch==max(lifestory$epoch),])
+     # str(lifestory[lifestory$season==0 & lifestory$epoch==max(lifestory$epoch),])
+     # str(lifestory[lifestory$season==1 & lifestory$epoch==max(lifestory$epoch),])
+      age <- list('0Yr'=1,'1Yr'=2,'2Yr'=3,'Sub-Ad'=4:5,'Adult'=6:99)
+      res <- NULL
+      ep <- max(lifestory$age)-4
+      label <- rep("",length(age))
+      for (i in seq_along(age)) {
+         pop0 <- lifestory[lifestory$age %in% (age[[i]]-1) & lifestory$epoch>=ep,]
+         pop1 <- lifestory[lifestory$age %in% age[[i]] & lifestory$epoch>=ep,]
+         s0 <- aggregate(id~epoch,data=pop0[pop0$season==0,],length)
+         s1 <- aggregate(id~epoch,data=pop1[pop1$season==1,],length)
+         s9 <- aggregate(id~epoch,data=pop1[pop1$season==9,],length)
+         surv <- s1$id/s0$id
+         surv[surv>=1] <- 1-1e-3
+         res2 <- data.frame(Epoch=s0$epoch,Survival=surv#,Age=names(age)[i]
+                           ,Label="")
+         label[i] <- sprintf("%s\n%.2f\u00B1%.2f",names(age)[i]
+                            ,mean(res2$Survival),sd(res2$Survival))
+         res2$Label <- label[i]
+         res <- rbind(res,res2)
+      }
+      res$Label <- factor(res$Label,levels=label,ordered=TRUE)
+      p9 <- ggplot(res,aes(Label,Survival))+
+            geom_violin()+
+            xlab("Age Structure")+ylab("Actual Survival")+
+            scale_x_discrete(breaks=NULL)+
+            facet_grid(.~Label,scales="free")+
+            p0
+     # print(p9+p0);q()
+   }
    if (TRUE) {
       pop <- lifestory[lifestory$epoch>c(0,max.age)[2] &
                        lifestory$epoch<=max(epoch)-0*4 &
                        lifestory$season==0,]
+      res <- NULL
       if (nrow(pop)) {
          age <- c('0Yr'=0,'1Yr'=1,'2Yr'=2)
          for (i in seq_along(age)) {
@@ -1117,36 +1148,11 @@ require(ggplot2)
      # ursa:::.elapsedTime("C")
      # epoch <- as.numeric(names(lifestory))
    }
-   list(p0=p0,p1=p1,p2=p2,p3=p3,p4=p4,p5=p5,p6=p6,p7=p7,p8=p8)
+   list(p0=p0,p1=p1,p2=p2,p3=p3,p4=p4,p5=p5,p6=p6,p7=p7,p8=p8,p9=p9)
 }
 
-noShiny <- .argv0.()=="demography-main.R"
+noShiny <- .argv0.()=="main.R"
 isShiny <- ("shiny" %in% loadedNamespaces())
-if (FALSE) {
-   init.den <- 100
-   litter <- sample(seq(1.4,2.2,by=0.01),1)
-   litterF <- litterFraction(litter)
-   max.age <- 34 # 35 30
-   reprod.age <- c(6,max.age-5)
-   reprod.cycle <- sample(seq(3.1,4.1,by=0.1),1)
-   #adult <- 6:round(c(0.9,1)[1]*max.age)
-   #subad.ini <- 3 ## subadult
-   subad <- 3:max.age ##individuals for independent survival
-   mortality.cub <- sample(seq(0.2,0.4,by=0.01),1)
-   mortality.yearling <- 1+0.19
-   mortality.adult <- 0.075
-   mortality.C1 <- 0 ## independent yearling mortality
-   mortality.C2 <- 0 ## independent juvenile mortality
-   sexratio <- 0.5*100 ## F/(F+M) ## 0.45 0.50
-   sigma <- 0*0.15
-   k1 <- 2.14917
-   k2 <- 5
-   removal <- 0*c(0.045,0.03)[2]
-   removal.age <- c(4,20)
-   juvenile <- sample(seq(0.2,0.7,by=0.001),1)
-   pregnant <- 0.85
-   equilibrium <- noShiny
-}
 init <- randomize()
 
 if (noShiny) {

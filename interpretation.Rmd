@@ -19,7 +19,7 @@ if (only) {
 p0 <- theme(text=element_text(size=9))
 ```
 
-*Mockup for more details of 'Result'*
+*Mockup for dynamical report. Will contain more details of 'Results' tab.*
 
 ## Polar Bear Demography
 

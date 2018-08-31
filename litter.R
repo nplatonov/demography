@@ -1,10 +1,22 @@
 source("./main.R")
 invisible({
-  # seed1 <- 179 ## 560 468 786 447 152 335 279 203 649 515 790 829
-  # seed2 <- 346  ## (236,441)
-   if (TRUE) {
+   if (FALSE) {
+      with(randomize(), {
+         k1i <- sample(c(2,5,10,15,20),1)
+         mortality.cub <- sample(c(0.25,0.35,0.45),1)
+         print(data.frame(k1i=k1i,mCOY=mortality.cub,mAdult=mortality.adult))
+         mortality <- mortalityTube(max.age=max.age,mortality.cub=mortality.cub
+                                   ,mortality.adult=mortality.adult
+                                   ,k1d=k1d,k1i=k1i,k2=k2)
+         print(mortality,digits=3)
+         tube <- mortalityTubePlot(mortality)
+         print(tube)
+      })
+      stop()
+   }
+   if (!TRUE) {
       if (TRUE) {
-         lifestory <- simulate(seed1=193,seed2=NA)
+         lifestory <- simulate(seed1=NA,seed2=NA)
       }
       else
          lifestory <- simulate(
@@ -36,6 +48,7 @@ invisible({
          print(p2)
          print(p3)
          print(p4)
+         print(p9)
       })
    }
 })
