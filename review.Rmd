@@ -322,31 +322,9 @@ The average litter size in spring was 1.90 (n
 litter size for cubs-of-the-year was higher than
 recorded during autumn `r citep("Ovsyanikov2010pbsg")` and repeated in `r citep("Ovsyanikov2010mmh")`.
 
-#### Co-author 1
-
-Did nothing.
-
-#### Co-author 2
-
-Did nothing.
-
-
 ---
 
-Also there is this work `r citep("Obbard_2016")`. Please see what `r citet("Obbard_2016")` wrote.
-
-
-И что ты думаешь про работу `r citep("MeltPonds2002_izk")`?
-Кстати, `r citet("Glazov2013_walrus")` неплохо написали про моржей.
-
-Есть ещё `r citet("Molnar_2010")`.
-
-Можно сослаться на @ursa, R[@R-core] пакет. @ursa likes me.
-
-И @Cavalieri1990-2001. А также онлайн-ресурс [@susane1]. @susane2 likes it. I like @susane2.
-
-
-Together with ";" separator [@Ovsyanikov2010pbsg; @Ovsyanikov2010mmh].
+Also there is this work `r citep("Obbard_2016")`.
 
 ---
 

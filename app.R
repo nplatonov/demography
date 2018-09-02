@@ -1,2 +1,3 @@
 source("./shiny.R")
-shinyApp(ui=ui,server=server)
+app <- shinyApp(ui=ui,server=server)
+if (interactive()) print(app) else runApp(app,launch.browser=TRUE)

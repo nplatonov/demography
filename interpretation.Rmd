@@ -6,8 +6,7 @@ pagetitle: Include Markdown
 author: Nikita Platonov
 bibliography: ./demography.bib
 link-citations: true
-zzzcsl: C:/platt/R/style/platt2.csl
-csl: https://nplatonov.github.io/platt.csl
+csl: https://nplatonov.github.io/platt2.csl
 output:
    bookdown::html_document2:
       number_sections: no

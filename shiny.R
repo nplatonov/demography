@@ -720,7 +720,3 @@ server <- function(input, session, output) {
       analysis()$p9
    })
 }
-if (length(grep("(^|--file=shiny.R)",commandArgs(FALSE)))) {
-   app <- shinyApp(ui=ui,server=server)
-   if (interactive()) print(app) else runApp(app,launch.browser=TRUE)
-}
