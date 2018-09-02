@@ -8,7 +8,15 @@ bibliography:
    - ./demography.bib
 biblio-style: apalike
 link-citations: true
-csl: "`r file.path('C:/platt/R/style/',c('geochronometria.csl','platt.csl')[2])`"
+csl: "`r file.path('C:/platt/R/style/',c('geochronometria.csl'
+                                        ,'platt.csl'
+                                        ,'water-alternatives.csl'
+                                        ,'platt2.csl'
+                                        ,'journal-of-tropical-life-science.csl'
+                                        ,'iaa-transactions.csl'
+                                        ,'gost-r-7-0-5-2008.csl'
+                                        )[4])`"
+zzzcsl: C:/tmp/styles-master/proinflow.csl
 output:
    html_vignette:
       toc: true
@@ -332,6 +340,13 @@ Also there is this work `r citep("Obbard_2016")`. Please see what `r citet("Obba
 Кстати, `r citet("Glazov2013_walrus")` неплохо написали про моржей.
 
 Есть ещё `r citet("Molnar_2010")`.
+
+Можно сослаться на @ursa, R[@R-core] пакет. @ursa likes me.
+
+И @Cavalieri1990-2001. А также онлайн-ресурс [@susane1]. @susane2 likes it. I like @susane2.
+
+
+Together with ";" separator [@Ovsyanikov2010pbsg; @Ovsyanikov2010mmh].
 
 ---
 

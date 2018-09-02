@@ -122,7 +122,7 @@ require(ggplot2)
    p
 }
 'roundAmount' <- function(amount) {
-   if ((all(amount<2))&&(sample(seq(3),1)==1))
+   if ((all(amount<2))&&(sample(seq(5),1)==1))
       return(ceiling(amount))
    round(amount)
 }
@@ -389,7 +389,7 @@ require(ggplot2)
                       ,init.den=NA,pregnant=NA
                       ,mortality.cub=NA,mortality.adult=NA
                       ,indep.C1=NA,fertility=NA,k1d=NA,k1i=NA,k2=NA
-                      ,seed1=NA,seed2=NA) {
+                      ,seed1=NA,seed2=NA,...) {
   # set.seed(NULL)
   # if (is.na(seed1)) {
   #    seed1 <- sample(100:999,1)
@@ -429,11 +429,12 @@ require(ggplot2)
    if (sexratio>1)
       sexratio <- sexratio/100
    nepoch <- max.age+50
-   print(data.frame(max.age=max.age,litter=litter,sex=sexratio
-                   ,dens=init.den,pregn=pregnant
-                   ,mCOY=mortality.cub,mAdult=mortality.adult
-                   ,iC1=indep.C1,fert=fertility,k1d=k1d,k1i=k1i,k2=k2
-                   ,seed1=seed1,seed2=seed2))
+   input <- list(max.age=max.age,litter=litter,sex=sexratio
+                ,dens=init.den,pregn=pregnant
+                ,mCOY=mortality.cub,mAdult=mortality.adult
+                ,iC1=indep.C1,fert=fertility,k1d=k1d,k1i=k1i,k2=k2
+                ,seed1=seed1,seed2=seed2)
+   print(as.data.frame(input))
    indep.fraction <- c(C0=0.001,C1=indep.C1,C2=0.99) # 0.27 ## Broken families
    indep.mortality <- 0.999
   # pregnant <- 0.64 #0.63
@@ -889,9 +890,11 @@ require(ggplot2)
    }
    LS$omit <- NULL
    rownames(LS) <- NULL
-   LS
+   list(input=input,output=LS)
 }
-'analyze' <- function(lifestory) {
+'analyze' <- function(LS) {
+   input <- LS$input
+   lifestory <- LS$output
    epoch <- sort(unique(lifestory$epoch))
    season <- sort(unique(lifestory$season))
    ns <- length(season)
@@ -920,12 +923,24 @@ require(ggplot2)
       res <- NULL
       ep <- max(lifestory$age)-4
       label <- rep("",length(age))
+      toSkip <- FALSE
       for (i in seq_along(age)) {
          pop0 <- lifestory[lifestory$age %in% (age[[i]]-1) & lifestory$epoch>=ep,]
          pop1 <- lifestory[lifestory$age %in% age[[i]] & lifestory$epoch>=ep,]
-         s0 <- aggregate(id~epoch,data=pop0[pop0$season==0,],length)
-         s1 <- aggregate(id~epoch,data=pop1[pop1$season==1,],length)
-         s9 <- aggregate(id~epoch,data=pop1[pop1$season==9,],length)
+         if ((!nrow(pop0))||(!nrow(pop1))) {
+            toSkip <- TRUE
+            break
+         }
+         spop0 <- pop0[pop0$season==0,]
+         spop1 <- pop1[pop1$season==1,]
+         spop9 <- pop1[pop1$season==9,]
+         if ((!nrow(spop0))||(!nrow(spop1))||(!nrow(spop9))) {
+            toSkip <- TRUE
+            break
+         }
+         s0 <- aggregate(id~epoch,data=spop0,length)
+         s1 <- aggregate(id~epoch,data=spop1,length)
+         s9 <- aggregate(id~epoch,data=spop9,length)
          surv <- s1$id/s0$id
          surv[surv>=1] <- 1-1e-3
          res2 <- data.frame(Epoch=s0$epoch,Survival=surv#,Age=names(age)[i]
@@ -935,13 +950,15 @@ require(ggplot2)
          res2$Label <- label[i]
          res <- rbind(res,res2)
       }
-      res$Label <- factor(res$Label,levels=label,ordered=TRUE)
-      p9 <- ggplot(res,aes(Label,Survival))+
-            geom_violin()+
-            xlab("Age Structure")+ylab("Actual Survival")+
-            scale_x_discrete(breaks=NULL)+
-            facet_grid(.~Label,scales="free")+
-            p0
+      if (!toSkip) {
+         res$Label <- factor(res$Label,levels=label,ordered=TRUE)
+         p9 <- ggplot(res,aes(Label,Survival))+
+               geom_violin()+
+               xlab("Age Structure")+ylab("Actual Survival")+
+               scale_x_discrete(breaks=NULL)+
+               facet_grid(.~Label,scales="free")+
+               p0
+      }
      # print(p9+p0);q()
    }
    if (TRUE) {
@@ -1148,7 +1165,7 @@ require(ggplot2)
      # ursa:::.elapsedTime("C")
      # epoch <- as.numeric(names(lifestory))
    }
-   list(p0=p0,p1=p1,p2=p2,p3=p3,p4=p4,p5=p5,p6=p6,p7=p7,p8=p8,p9=p9)
+   list(input=input,p0=p0,p1=p1,p2=p2,p3=p3,p4=p4,p5=p5,p6=p6,p7=p7,p8=p8,p9=p9)
 }
 
 noShiny <- .argv0.()=="main.R"

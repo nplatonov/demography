@@ -1,23 +1,42 @@
 ---
-title: Include Markdown
+params:
+  prm: NULL
+  kind: 0
+pagetitle: Include Markdown
 author: Nikita Platonov
 bibliography: ./demography.bib
 link-citations: true
+zzzcsl: C:/platt/R/style/platt2.csl
 csl: https://nplatonov.github.io/platt.csl
+output:
+   bookdown::html_document2:
+      number_sections: no
+   bookdown::pdf_document2:
+      toc: false
+      number_sections: false
+   pdf_document:
+      fig_caption: false
 ---
 
 ```{r setup,include=FALSE}
-knitr::opts_chunk$set(fig.align="center",fig.width=6,fig.height=4.8)
-only <- !exists("input")
-if (only) {
+res <- params$prm
+input <- res$input
+kind <- params$kind
+if (kind==0) {
    source("./main.R")
    input <- randomize()
-   require(ggplot2)
+   res <- analyze(do.call("simulate",input))
+   kind <- 2
 }
-'citep' <- function(ref) paste0("[@",ref,"]")
-'citet' <- function(ref) paste0("@",ref,"")
-p0 <- theme(text=element_text(size=9))
+knitr::opts_chunk$set(fig.align="center",fig.width=6,fig.height=4.8)
 ```
+
+```{r eval=FALSE,include=FALSE}
+out_type <- knitr::opts_knit$get("rmarkdown.pandoc.to")
+str(knitr::opts_knit$get())
+print(out_type)
+```
+---- 
 
 *Mockup for dynamical report. Will contain more details of 'Results' tab.*
 
@@ -25,14 +44,15 @@ p0 <- theme(text=element_text(size=9))
 
 This is a simulator of polar bear lifespan based on certain demographical parameters.
 
-In scenario, maximal age is `r input$max.age` years.
+In scenario, maximal age is **`r input$max.age`** years.
 
 
-```{r p3, echo=FALSE, fig.cap="Fig.3. Enjoy!"}
-a <- try(analysis())
-if (!inherits(a,"try-error"))
-   print(analysis()$p3+p0)
+```{r p3, echo=FALSE, fig.cap="This figure has a caption."}
+if (!is.null(res$p3))
+   print(res$p3)
 ```
+
+`r if ((kind==2)&&(!is.null(res$p3))) "Histogram is presented on Fig.\\@ref(fig:p3)."`
 
 Life expectancy in the wild can be as long as 30 years. In captivity, life expectancy can reach 40 years.
 

@@ -9,7 +9,7 @@ ui <- dashboardPage(skin = "purple"
    ,dashboardHeader(title = "Polar Bear Demography",disable=TRUE,titleWidth = 350)
    ,dashboardSidebar(NULL
       ,collapsed=TRUE
-      ,disable=TRUE
+      ,disable=!TRUE
      # ,width = 350
       ,sidebarMenu(id="tabs"
         # ,HTML("<center>"),h4("Polar Bear Demography"),HTML("</center>")
@@ -331,11 +331,11 @@ ui <- dashboardPage(skin = "purple"
                         ,column(3,
                            plotOutput("plotAgeStructure",height=height)
                         )
-                        ,column(2,
-                           plotOutput("plotLitterSize",height=height)
-                        )
                         ,column(3,
                            plotOutput("plotSurvival",height=height)
+                        )
+                        ,column(2,
+                           plotOutput("plotLitterSize",height=height)
                         )
                      )
                      ,fluidRow(NULL
@@ -349,7 +349,10 @@ ui <- dashboardPage(skin = "purple"
                        # ,box(width=12
                            ,column(2)
                            ,column(8
-                              ,uiOutput('markdown')
+                              ,uiOutput("markdown")
+                              ,br()
+                              ,uiOutput("downloadPDF")
+                              ,uiOutput("downloadHTML")
                            )
                            ,column(2)
                        # )
@@ -506,7 +509,7 @@ server <- function(input, session, output) {
    })
    result <- eventReactive(input$simulate,{
       message("*** Simulate (reactive)")
-      updateTabsetPanel(session,"tabset1",selected="Results") ## NOT WORKING
+     # updateTabsetPanel(session,"tabset1",selected="Results") ## NOT WORKING
       rv <- params()
       showModal(modalDialog(title = "Simulation in progress","Please wait"
                        ,sise="s",easyClose = TRUE,footer = NULL))
@@ -599,15 +602,56 @@ server <- function(input, session, output) {
          a1 <- tempfile()
          rmarkdown::render('interpretation.Rmd'
                           ,output_format=rmarkdown::html_fragment()
-                          ,output_file=a1,quiet=TRUE)
+                         # ,output_format=rmarkdown::html_vignette(css=NULL)
+                          ,output_file=a1,quiet=TRUE
+                          ,params=list(prm=analysis(),kind=1L)
+                          )
          a2 <- scan(a1,what=character(),encoding="UTF-8",quiet=TRUE)
         # file.remove(a1)
          HTML(a2)
       }
    })
+   output$download_pdf <- downloadHandler(
+      filename = "report.pdf",
+      content = function(file) {
+         fname <- "interpretation.Rmd"
+        # tempReport <- file.path(tempdir(),fname)
+        # file.copy(fname,tempReport,overwrite=TRUE)
+         rmarkdown::render(fname
+                          ,output_file=file
+                          ,output_format=bookdown::pdf_document2(
+                             toc=FALSE
+                             ,number_sections=FALSE
+                          )
+                          ,params=list(prm=analysis(),kind=2L)
+                          ,envir=new.env(parent=globalenv()))
+      }
+   )
+   output$download_html <- downloadHandler(
+      filename = "report.html",
+      content = function(file) {
+         fname <- "interpretation.Rmd"
+         rmarkdown::render(fname
+                          ,output_file=file
+                          ,output_format=bookdown::html_document2(
+                             toc=FALSE
+                             ,number_sections=FALSE
+                          )
+                          ,params=list(prm=analysis(),kind=2L)
+                          ,envir=new.env(parent=globalenv()))
+      }
+   )
+   output$downloadPDF <- renderUI({
+      req(analysis())
+      downloadLink("download_pdf","Download PDF")
+   })
+   output$downloadHTML <- renderUI({
+      req(analysis())
+      downloadLink("download_html","Download HTML")
+   })
    output$interim <- renderPrint({
      # notification <- showNotification("Please wait",duration=1e6)
-      res <- result()
+      res <- result()$output
      # saveRDS(res,"lifestory-app.rds")
       str(res)
      # removeNotification(notification)

@@ -14,9 +14,9 @@ invisible({
       })
       stop()
    }
-   if (!TRUE) {
+   if (TRUE) {
       if (TRUE) {
-         lifestory <- simulate(seed1=NA,seed2=NA)
+         lifestory <- simulate(seed1=729,seed2=981)
       }
       else
          lifestory <- simulate(
