@@ -16,16 +16,40 @@ invisible({
    }
    if (TRUE) {
       if (TRUE) {
-         lifestory <- simulate(seed1=729,seed2=981)
+         lifestory <- simulate(seed1=447,seed2=840)
       }
-      else
+      else if (!FALSE) { ## MOSJ
          lifestory <- simulate(
-                       ,max.age=34
-                       ,litter=1.8 # 2.2 # 1.8
-                       ,mortality.cub=0.32 ## 0.34 # 0.29
-                       ,pregnant=0.64 #0.63
-                       ,mortality.adult=0.08
-                       ,indep.C1=0.2)
+                              ,max.age=32
+                              ,litter=1.69
+                              ,mortality.cub=0.35
+                              ,mortality.adult=0.09
+                              ,pregnant=0.64
+                              ,k1d=10
+                              ,k1i=8
+                              ,k2=5
+                              ,fert=0.70
+                              ,indep.fraction=0.45
+                              ,seed1=214
+                              ,seed2=850
+                              )
+        ## control: trend value for 2005
+        ### Cub production = Natality rate: 0.63
+        ### Litter proportion: 0.36 (0yr), 0.13 (1yr)
+      }
+      else if (TRUE) ## Wiig1998
+         lifestory <- simulate(
+                              ,max.age=35
+                              ,litter=1.83 # 2.2 # 1.8
+                              ,mortality.cub=0.39 ## 0.34 # 0.29
+                              ,mortality.adult=0.09
+                              ,pregnant=0.73
+                              ,k1i=8
+                              ,fert=0.7
+                              ,indep.fraction=0.5
+                              ,seed1=NA
+                              ,seed2=NA
+                              )
       if (!FALSE)
          saveRDS(lifestory,"lifestory.rds")
    }
@@ -40,10 +64,11 @@ invisible({
       with(res,{
         # print(p7+facet_grid(age~.)+p0)
         # print(p7+facet_grid(.~age)+p0)
-         print(p8+facet_grid(.~age)+p0)
         # print(p8+facet_grid(age~.)+p0)
          print(p6)
          print(p5)
+         print(p8+facet_grid(.~age)+p0)
+         print(p10)
          print(p1)
          print(p2)
          print(p3)

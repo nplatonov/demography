@@ -4,7 +4,7 @@ suppressMessages({
    require(shinydashboard)
 })
 source("./main.R")
-height <- c("180px","247px")[2]
+height <- c("600px","248px","165px")
 ui <- dashboardPage(skin = "purple"
    ,dashboardHeader(title = "Polar Bear Demography",disable=TRUE,titleWidth = 350)
    ,dashboardSidebar(NULL
@@ -154,12 +154,6 @@ ui <- dashboardPage(skin = "purple"
                                        min=1.0, max=2.5, value=init$litter,step=0.01
                                       )
                         )
-                        ##~ ,column(3,
-                           ##~ sliderInput("mortality.C1"
-                                      ##~ ,"Independet yearling mortality"
-                                      ##~ ,min=0.01, max=1, value=mortality.C1,step=0.01
-                                      ##~ )
-                        ##~ )
                         ,column(3
                            ,fluidRow(NULL
                               ,"Random seed:"
@@ -208,8 +202,8 @@ ui <- dashboardPage(skin = "purple"
                      ,fluidRow(NULL
                         ,column(3,
                            sliderInput("mortality.cub", "Dependent COY mortality",
-                                       min=0.1, max=0.5,value=init$mortality.cub,
-                                       step=0.001
+                                       min=0.2, max=0.5,value=init$mortality.cub,
+                                       step=0.01
                                       )
                         )
                         ,column(3
@@ -224,12 +218,12 @@ ui <- dashboardPage(skin = "purple"
                         )
                         ,column(3,
                            sliderInput("mortality.adult", "Adult mortality",
-                                       min=0.01, max=0.2,value=init$mortality.adult,
-                                       step=0.001
+                                       min=0.01, max=0.15,value=init$mortality.adult,
+                                       step=0.005
                                       )
                         )
                         ,column(3,
-                           sliderInput("pregnant", "Success of mating",
+                           sliderInput("pregnant", "Birth success",
                                        min=0.2, max=1.0,value=init$pregnant,
                                        step=0.01
                                       )
@@ -256,22 +250,23 @@ ui <- dashboardPage(skin = "purple"
                      ,fluidRow(NULL
                         ,column(3,
                            sliderInput("k1d", "Mortality rate of dependent young",
-                                       min=1, max=20, value=init$k1d,step=0.01
+                                       min=1, max=20, value=init$k1d,step=0.1
                                       )
                         )
                         ,column(3,
                            sliderInput("k1i", "Mortality rate of independent youngs",
-                                       min=1, max=20, value=init$k1i,step=0.01
+                                       min=1, max=20, value=init$k1i,step=0.1
                                       )
                         )
                         ,column(3,
                            sliderInput("k2", "Mortality rate of aging",
-                                       min=1, max=20, value=init$k2,step=0.01
+                                       min=1, max=20, value=init$k2,step=0.1
                                       )
                         )
                         ,column(3,
                            sliderInput("indep.C1", "Broken yearling families",
-                                       min=0, max=1, value=init$indep.C1,step=0.005
+                                       min=0, max=1
+                                       ,value=init$indep.fraction[2],step=0.01
                                       )
                         )
                      )
@@ -311,34 +306,39 @@ ui <- dashboardPage(skin = "purple"
                   )
                   ,tabPanel(title="Results",value="Results"#,icon=icon("signal")
                      ,fluidRow(NULL
-                        ,column(3,
-                           plotOutput("plotPopSize",height=height)
+                        ,column(3
+                           ,plotOutput("plotPopSize",height=height[2])
+                           ,plotOutput("plotAgeStructure",height=height[2])
                         )
-                        ,column(3,
-                           plotOutput("plotCubs",height=height)
+                        ,column(9
+                           ,fluidRow(NULL
+                              ,column(4
+                                 ,plotOutput("plotCubs",height=height[3])
+                              )
+                              ,column(3
+                                 ,plotOutput("plotDens",height=height[3])
+                              )
+                              ,column(3
+                                 ,plotOutput("plotAdults",height=height[3])
+                              )
+                              ,column(2
+                                 ,plotOutput("plotInterbirth",height=height[3])
+                              )
+                           )
+                           ,fluidRow(NULL
+                              ,column(4
+                                 ,plotOutput("plotSurvival",height=height[3])
+                              )
+                              ,column(3
+                                 ,plotOutput("plotLitterSize",height=height[3])
+                              )
+                              ,column(3
+                                 ,plotOutput("plotLitterProduction",height=height[3])
+                              )
+                           )
+                           ,fluidRow(NULL
+                           )
                         )
-                        ,column(2,
-                           plotOutput("plotInterbirth",height=height)
-                        )
-                        ,column(2,
-                           plotOutput("plotDens",height=height)
-                        )
-                        ,column(2,
-                           plotOutput("plotAdults",height=height)
-                        )
-                     )
-                     ,fluidRow(NULL
-                        ,column(3,
-                           plotOutput("plotAgeStructure",height=height)
-                        )
-                        ,column(3,
-                           plotOutput("plotSurvival",height=height)
-                        )
-                        ,column(2,
-                           plotOutput("plotLitterSize",height=height)
-                        )
-                     )
-                     ,fluidRow(NULL
                      )
                   )
                   ##~ ,tabPanel("",value="Verbatim",icon=icon("terminal")
@@ -393,11 +393,11 @@ server <- function(input, session, output) {
    })
    output$mort.C1.depend <- renderText({
       m <- params()$mortality
-      sprintf("Depend yearling mortality: %.3f",m[2])
+      sprintf("Dependent yearling mortality: %.3f",m[2])
    })
    output$mort.C2.depend <- renderText({
       m <- params()$mortality
-      sprintf("Depend sub-adult mortality: %.3f",m[3])
+      sprintf("Dependent sub-adult mortality: %.3f",m[3])
    })
    output$mort.C1.indep <- renderText({
       m <- params()$indep.mortality
@@ -471,6 +471,8 @@ server <- function(input, session, output) {
       mortality <- mortality$depend
       age <- seq(max.age)
       init.den <- input$init.den
+      indep.fraction <- init$indep.fraction
+      indep.fraction[2] <- input$indep.C1
       list(mortality=mortality
           ,indep.mortality=indep.mortality
           ,mortality.cub=input$mortality.cub
@@ -481,7 +483,7 @@ server <- function(input, session, output) {
           ,tube.fert=fertilityCurve(age=age,u=input$fertility,plot=TRUE)
           ,init.den=init.den
           ,litter=input$litter
-          ,indep.C1=input$indep.C1
+          ,indep.fraction=indep.fraction
           ,max.age=input$max.age
           ,pregnant=input$pregnant
           ,sexratio=input$sexratio
@@ -520,7 +522,7 @@ server <- function(input, session, output) {
                              ,pregnant=pregnant
                              ,mortality.cub=mortality.cub
                              ,mortality.adult=mortality.adult
-                             ,indep.C1=indep.C1
+                             ,indep.fraction=indep.fraction
                              ,fertility=input$fertility
                              ,k1d=input$k1d
                              ,k1i=input$k1i
@@ -562,7 +564,7 @@ server <- function(input, session, output) {
       updateSliderInput(session,"sexratio",value=res$sexratio)
       updateSliderInput(session,"init.den",value=res$init.den)
       updateSliderInput(session,"pregnant",value=res$pregnant)
-      updateSliderInput(session,"indep.C1",value=res$indep.C1)
+      updateSliderInput(session,"indep.C1",value=res$indep.fraction[2])
       updateSliderInput(session,"mortality.cub",value=res$mortality.cub)
       updateSliderInput(session,"mortality.adult",value=res$mortality.adult)
       updateSliderInput(session,"fertility",value=res$fertility)
@@ -718,5 +720,8 @@ server <- function(input, session, output) {
    })
    output$plotSurvival <- renderPlot({
       analysis()$p9
+   })
+   output$plotLitterProduction <- renderPlot({
+      analysis()$p10
    })
 }
