@@ -9,7 +9,6 @@
   #    seed2 <- NA
   # }
   # set.seed(seed1)
-   birthSuccess <- TRUE
    seasonName <- c('0'="dens release",'1'="dens prerelize",'9'="passed away"
                   ,'8'="broken family")
    init <- randomize(seed1=seed1,seed2=seed2)
@@ -96,12 +95,6 @@
    daF <- data.frame(age=age1,fert=NA,peer=NA)
    daF$fert <- fertilityCurve(age1,d=3,s=9,m=10,u=fertility)
    daF$peer <- c(round(df1$peer[na.omit(match(daF$age,df1$age))]*sexratio))
-   if (F & birthSuccess) {
-      daM0 <- data.frame(age=0,peer=round((df1$peer[1]+df1$lost[1])*(1-sexratio)))
-      daF0 <- data.frame(age=0,fert=0,peer=round((df1$peer[1]+df1$lost[1])*sexratio))
-      daM <- rbind(daM0,daM)
-      daF <- rbind(daF0,daF)
-   }
    popF <- data.frame(id=NA,epoch=0L,season=0L,born=NA,sex="F"
                      ,age=rep(daF$age,daF$peer),child=0L,parent=NA)
    popM <- data.frame(id=NA,epoch=0L,season=0L,born=NA,sex="M"
@@ -127,7 +120,7 @@
       }
    }
    for (epoch in c(0L,seq(nepoch))) {
-      verbose <- epoch %in% c(0,nepoch-c(1,0))
+      verbose <- epoch %in% c(-10,nepoch-c(1,0))
       if (isProgressBar) {
          if (!isShiny)
             tcltk::setTkProgressBar(pb,epoch,label=paste("Epoch",epoch))
@@ -149,7 +142,6 @@
             pop$child[ind2] <- -i
          }
       }
-     # verbose <- birthSuccess & epoch %in% c(0,nepoch-c(1,0))
       for (a in subad.ini+c(0,1)[-1]) {
          if (length(ind <- which(pop$age==a))) { ## break C3+ families
             parent <- unique(na.omit(pop$parent[ind]))
@@ -159,263 +151,51 @@
          }
       }
       pop <- repairFamily(pop)
-      if (birthSuccess) {
-         peer0 <- sum(np*seq_along(np))
-         repeat({
-            sexCOY <- sample(rep(c("F","M"),round(c(sexratio,1-sexratio)*(peer0*10)))
-                            ,peer0)
-            if (length(sexCOY)<2) {
-               tCOY <- integer()
-               break
-            }
-            tCOY <- table(sexCOY)
-            if (length(table(sexCOY))==2)
-               break
-         })
-         if (sum(tCOY)<3) {
-           # message("BREAK: population extra lost")
+      peer0 <- sum(np*seq_along(np))
+      repeat({
+         sexCOY <- sample(rep(c("F","M"),round(c(sexratio,1-sexratio)*(peer0*10)))
+                         ,peer0)
+         if (length(sexCOY)<2) {
+            tCOY <- integer()
             break
          }
-         nF <- length(sexCOY[sexCOY=="F"])
-         nM <- length(sexCOY[sexCOY=="M"])
-         if (verbose)
-            print(table(sexCOY))
-         popF0 <- data.frame(id=NA,epoch=epoch,season=0L,born=base+epoch,sex="F"
-                            ,age=rep(0L,nF),child=0L,parent=NA)
-         popM0 <- data.frame(id=NA,epoch=epoch,season=0L,born=base+epoch,sex="M"
-                            ,age=rep(0L,nM),child=0L,parent=NA)
-        # print(nrow(pop))
-         pop0 <- rbind(popM0,popF0)
-         pop0$id <- makeID(nrow(pop0))
-         pop <- rbind(pop0,pop)
-         ind <- which(pop$child<0)
-        # pop3 <- pop
-        # str(c(c=ind))
-         for (ind2 in sample(ind)) {
-            pop2 <- pop[ind2,]
-            ind3 <- which(pop$age==0 & is.na(pop$parent))
-            if (!length(ind3)) {
-               pop$child[ind2] <- 0L
-               next
-            }
-            pop$child[ind2] <- abs(pop$child[ind2])
-            if (length(ind3)>=pop$child[ind2])
-               ind3 <- sample(ind3,pop$child[ind2])
-            else
-               pop$child[ind2] <- length(ind3)
-            pop$parent[ind3] <- pop$id[ind2]
-         }
+         tCOY <- table(sexCOY)
+         if (length(table(sexCOY))==2)
+            break
+      })
+      if (sum(tCOY)<3) {
+        # message("BREAK: population extra lost")
+         break
       }
-      if (!birthSuccess) {
-         ind <- which(pop$sex=="F" & !pop$child) ## pri
-        # ind <- which(!(pop$id[pop$sex=="F"] %in% pop$parent)) ## alt
-         peer <- table(pop$age[ind])
-         daF$peer <- 0
-         daF$peer[match(as.integer(names(peer)),daF$age)] <- as.integer(peer)
-         ageF <- daF$age[daF$fert>0]
-         indS <- which(pop$sex=="F" & pop$age %in% ageF & !pop$child) ## pri
-        # indS <- which(pop$id %in% pop$parent[pop$parent %in% pop$id]) ## alt
-         if (FALSE)
-            parents <- init.den
-         else if (epoch<c(2,max.age)[1]) { ## epoch<1 epoch<max.age
-            parents <- init.den
-            if (!FALSE) {
-               available <- roundAmount(sum(daF$peer[daF$fert>0])*c(1,pregnant)[2])
-              # print(c(available=available,parents=parents))
-               if (available<parents)
-                  parents <- available
-            }
+      nF <- length(sexCOY[sexCOY=="F"])
+      nM <- length(sexCOY[sexCOY=="M"])
+      if (verbose)
+         print(table(sexCOY))
+      popF0 <- data.frame(id=NA,epoch=epoch,season=0L,born=base+epoch,sex="F"
+                         ,age=rep(0L,nF),child=0L,parent=NA)
+      popM0 <- data.frame(id=NA,epoch=epoch,season=0L,born=base+epoch,sex="M"
+                         ,age=rep(0L,nM),child=0L,parent=NA)
+     # print(nrow(pop))
+      pop0 <- rbind(popM0,popF0)
+      pop0$id <- makeID(nrow(pop0))
+      pop <- rbind(pop0,pop)
+      ind <- which(pop$child<0)
+     # pop3 <- pop
+     # str(c(c=ind))
+      for (ind2 in sample(ind)) {
+         pop2 <- pop[ind2,]
+         ind3 <- which(pop$age==0 & is.na(pop$parent))
+         if (!length(ind3)) {
+            pop$child[ind2] <- 0L
+            next
          }
-         else {
-           # parents <- init.den ## temporal assign
-            parents <- roundAmount(length(indS)*pregnant)
-         }
-         if ((!FALSE)&&(verbose)) {
-           # str(c(na.omit(pop$parent[which(pop$age==3)])))
-            P0 <- length(na.omit(unique(pop$parent[which(pop$age==0)])))
-            P1 <- length(na.omit(unique(pop$parent[which(pop$age==1)])))
-            P2 <- length(na.omit(unique(pop$parent[which(pop$age==2)])))
-            P3 <- length(na.omit(unique(pop$parent[which(pop$age==3)])))
-            P4 <- length(na.omit(unique(pop$parent[which(pop$age==4)])))
-            print(c(P0=P0,P1=P1,P2=P2,P3=P3,P4=P4))
-         }
-        # indP <- which(pop$child>0)
-        # print(pop[pop$parent %in% pop$id,])
-         if (verbose) {
-            popC <- unique(pop[pop$parent %in% pop$id,c("age","parent")])
-            ta <- table(popC$age)
-            tc <- c(S=length(indS),F=length(indS)-parents,P=parents,C=sum(ta),ta)
-           # cat("-------------------------------\n")
-           # print(c(epoch=epoch))
-            print(tc)
-            print(tc[1:2]/sum(tc[1:2]))
-           # cat("-------------------------------\n")
-         }
-         np <- roundAmount(parents*lf[pattern])
-         peer0 <- sum(np*seq_along(np))
-         if ((FALSE)&&((epoch>=max.age)&&(peer0>init.den*14))) {
-            message("BREAK: population extra gain")
-            break
-         }
-         if (TRUE) {
-            if ((FALSE)&&(epoch<max.age)) {
-               dens <- sum(np)
-              # print(dens)
-               rate <- init.den/dens
-               if (rate<0.95) {
-                  n1 <- nrow(pop)
-                  n2 <- round(n1*rate)
-                  print(c(n1=n1,n2=n2))
-                  pop <- pop[sample(seq(n1),n2),]
-                 # pop <- repairFamily(pop)
-               }
-              # if (rate>1.05) {
-                 # n1 <- 
-              # }
-            }
-            repeat({
-               sexCOY <- sample(rep(c("F","M"),round(c(sexratio,1-sexratio)*(peer0*10)))
-                               ,peer0)
-               if (length(sexCOY)<2) {
-                  tCOY <- integer()
-                  break
-               }
-               tCOY <- table(sexCOY)
-               if (length(table(sexCOY))==2)
-                  break
-            })
-            if (sum(tCOY)<3) {
-              # message("BREAK: population extra lost")
-               break
-            }
-         }
-         else { ## less randomize
-            a <- round(peer0*(1-sexratio))
-            sexCOY <- sample(c(rep("F",peer0-a),rep("M",a)))
-         }
-         nF <- length(sexCOY[sexCOY=="F"])
-         nM <- length(sexCOY[sexCOY=="M"])
-         if (verbose)
-            print(table(sexCOY))
-         popF0 <- data.frame(id=NA,epoch=epoch,season=0L,born=base+epoch,sex="F"
-                            ,age=rep(0L,nF),child=0L,parent=NA)
-         popM0 <- data.frame(id=NA,epoch=epoch,season=0L,born=base+epoch,sex="M"
-                            ,age=rep(0L,nM),child=0L,parent=NA)
-        # print(nrow(pop))
-         pop0 <- rbind(popM0,popF0)
-         pop0$id <- makeID(nrow(pop0))
-         pop <- rbind(pop0,pop)
-        # print(nrow(pop))
-         birth <- vector("list",3)
-         names(birth) <- paste0(seq_along(birth),"C")
-         nrep <- round(10*daF$peer*daF$fert)
-        # s0 <- with(daF,rep(age,round(100*fert*peer)))
-         peer0 <- daF$peer
-         children <- sum(seq_along(np)*np)
-         if (children!=nrow(pop0)) {
-            print(epoch)
-            print(c(expected=children,fact=nrow(pop0)))
-            q()
-         }
-         if (verbose & F) {
-            print(daF[daF$fert>0,])
-         }
-         toBreak <- FALSE
-         for (i in rev(seq_along(birth))) {
-            b <- rep(NA,np[i])
-            for (k in seq_len(np[i])) {
-               for (u in c(1,2,3,4,5)) { ## c(1,2,3,4,5)
-                  if (u>1)
-                     print(c(u=u))
-                  s <- with(daF,round(rep(age,(10^u)*peer*fert)))
-                  if (length(s))
-                     break
-               }
-               j <- try(sample(seq_along(s),1))
-               toBreak <- (inherits(j,"try-error"))
-               if (toBreak)
-                  break
-               ind <- which(daF$age==s[j])
-               daF$peer[ind] <- daF$peer[ind]-1
-               b[k] <- s[j]
-            }
-            if (toBreak)
-               break
-            birth[[i]] <- b
-         }
-         if (verbose & F)
-            str(birth)
-         if (toBreak) {
-            if (FALSE) {
-               print(c(epoch=epoch))
-               print(c(litter=i,age=k,children=children,parents=parents))
-               print(np)
-               print(c(k=k))
-               print(u)
-               print(s)
-               print(daF)
-            }
-            message("Not ehough fertile females")
-            break
-         }
-        # str(birth)
-        # str(pop[pop$age==0,])
-         for (i in sample(seq_along(birth))) { ## i - litter size
-            b <- birth[[i]]
-            for (j in sample(seq_along(b))) { # b[j] - это возраст
-               ind <- which(pop$sex=="F" & pop$age==b[j] & !pop$child) ## pri
-              # indP <- which(pop$sex=="F" & pop$age==b[j]) ## alt1
-              # ind <- indP[!(pop$id[indP] %in% pop$parent)] ## alt2
-               if (!length(ind)) { ## no free females with such age
-                  message("no free females with such age")
-                  print(c(children=i,parent=j,age=b[j],ind=ind,ind3=ind3))
-                  next ## skip; reduce breeding rate
-               }
-               if (length(ind)>1)
-                  ind <- sample(ind,1)
-               pop$child[ind] <- i
-               ind2 <- which(pop$age==0 & is.na(pop$parent))
-               if (length(ind2)>1)
-                  ind2 <- sample(ind2,i)
-               pop$parent[ind2] <- pop$id[ind] ## <- ind
-               ind3 <- which(pop$sex=="M" & pop$child>0)
-               if (length(ind3)) {
-                  cat("===============================================\n")
-                  print(which(pop$sex=="F" & pop$age==b[j] & !pop$child))
-                  print(c(childs=i,parent=j,age=b[j],ind=ind,ind3=ind3))
-                  print(pop[ind,])
-                  print(pop[ind3,])
-                  cat("===============================================\n")
-                  stop("Transgenders are not supported")
-               }
-            }
-         }
-         if (verbose) {
-           # доля бездетных, доля с годовиками, доля с двухлетками, доля с сеголет.
-            ageF <- daF$age[daF$fert>0]
-            indS <- which(pop$sex=="F" & pop$age %in% ageF & !pop$child)
-            indP <- which(pop$child>0)
-            popC <- unique(pop[pop$parent %in% pop$id,c("age","parent")])
-           # print(pop[pop$parent %in% pop$id,])
-            tc <- c(S=length(indS),table(popC$age))
-           # print(c(epoch=epoch))
-            print(tc)
-           # message(paste("epoch:",epoch))
-         }
-         if (verbose) {
-            popC0 <- pop[!is.na(pop$parent) & pop$age==0,]
-            if (FALSE) {
-               print(table(popC0$sex))
-               print(popC0)
-               q()
-            }
-            F0 <- table(popC0$parent)
-               print(cbind(data.frame(LF["C0",,drop=FALSE])
-                          ,F=length(F0),C=sum(F0)))
-         }
-        # p <- unname(table(as.integer(F0)))
-        # p <- round(p/sum(p),3)
-      } ## !birthSuccess
+         pop$child[ind2] <- abs(pop$child[ind2])
+         if (length(ind3)>=pop$child[ind2])
+            ind3 <- sample(ind3,pop$child[ind2])
+         else
+            pop$child[ind2] <- length(ind3)
+         pop$parent[ind3] <- pop$id[ind2]
+      }
       pop$season <- 0L
       lifestory[[lifecut]] <- pop
       lifecut <- lifecut+1L
@@ -430,6 +210,15 @@
          if (!n1)
             next
          n2 <- roundAmount(unname(indep.fraction[i])*n1)
+         if (i==1) {
+            fr <- mortality[1]*2/12*1/3 ## 2/12: May-June, 1/3 late mate prob
+            remate <- roundAmount(fr*n1)
+            n2 <- n2+remate
+            if (verbose) {
+               print(data.frame(parents=n1,broken=n2
+                               ,remate_fraction=fr,broken_with_remate=remate))
+            }
+         }
          if (!n2)
             next
          ind2 <- if ((n1==1)||(n2<1)) ind1 else sample(ind1,n2)
@@ -457,130 +246,129 @@
             q()
          }
       }
-      if (birthSuccess) { ## mating
-         ind <- which(pop$sex=="F" & !pop$child)
-         peer <- table(pop$age[ind])
-         daF$peer <- 0
-         daF$peer[match(as.integer(names(peer)),daF$age)] <- as.integer(peer)
-         ageF <- daF$age[daF$fert>0]
-         indS <- which(pop$sex=="F" & pop$age %in% ageF &
-                       !pop$child & is.na(pop$parent))
-         if (FALSE)
-            parents <- init.den
-         else if (epoch<c(2,max.age)[1]) { ## epoch<1 epoch<max.age
-            parents <- init.den
-            if (!FALSE) {
-               available <- roundAmount(sum(daF$peer[daF$fert>0])*pregnant)
-              # print(c(available=available,parents=parents))
-               if (available<parents)
-                  parents <- available
-            }
+     ## mating
+      ind <- which(pop$sex=="F" & !pop$child)
+      peer <- table(pop$age[ind])
+      daF$peer <- 0
+      daF$peer[match(as.integer(names(peer)),daF$age)] <- as.integer(peer)
+      ageF <- daF$age[daF$fert>0]
+      indS <- which(pop$sex=="F" & pop$age %in% ageF &
+                    !pop$child & is.na(pop$parent))
+      if (FALSE)
+         parents <- init.den
+      else if (epoch<c(2,max.age)[1]) { ## epoch<1 epoch<max.age
+         parents <- init.den
+         if (!FALSE) {
+            available <- roundAmount(sum(daF$peer[daF$fert>0])*pregnant)
+           # print(c(available=available,parents=parents))
+            if (available<parents)
+               parents <- available
          }
-         else {
-           # parents <- init.den ## temporal assign
-            parents <- roundAmount(length(indS)*pregnant)
-         }
-        # print(parents)
-         if ((!FALSE)&&(verbose)) {
-           # str(c(na.omit(pop$parent[which(pop$age==3)])))
-            P0 <- length(na.omit(unique(pop$parent[which(pop$age==0)])))
-            P1 <- length(na.omit(unique(pop$parent[which(pop$age==1)])))
-            P2 <- length(na.omit(unique(pop$parent[which(pop$age==2)])))
-            P3 <- length(na.omit(unique(pop$parent[which(pop$age==3)])))
-            P4 <- length(na.omit(unique(pop$parent[which(pop$age==4)])))
-            print(c(P0=P0,P1=P1,P2=P2,P3=P3,P4=P4))
-         }
-        # indP <- which(pop$child>0)
-        # print(pop[pop$parent %in% pop$id,])
-         if (verbose) {
-            popC <- unique(pop[pop$parent %in% pop$id,c("age","parent")])
-            ta <- table(popC$age)
-            tc <- c(S=length(indS),F=length(indS)-parents,P=parents,C=sum(ta),ta)
-           # cat("-------------------------------\n")
-           # print(c(epoch=epoch))
-            print(tc)
-            print(tc[1:2]/sum(tc[1:2]))
-           # cat("-------------------------------\n")
-         }
-         np <- roundAmount(parents*lf[pattern])
-         birth <- vector("list",3)
-         names(birth) <- paste0(seq_along(birth),"C")
-         nrep <- round(10*daF$peer*daF$fert)
-        # s0 <- with(daF,rep(age,round(100*fert*peer)))
-         toBreak <- FALSE
-         for (i in rev(seq_along(birth))) {
-            b <- rep(NA,np[i])
-            for (k in seq_len(np[i])) {
-               for (u in c(1,2,3,4,5)) { ## c(1,2,3,4,5)
-                  if (u>1)
-                     print(c(u=u))
-                  s <- with(daF,round(rep(age,(10^u)*peer*fert)))
-                  if (length(s))
-                     break
-               }
-               j <- try(sample(seq_along(s),1))
-               toBreak <- (inherits(j,"try-error"))
-               if (toBreak)
+      }
+      else {
+        # parents <- init.den ## temporal assign
+         parents <- roundAmount(length(indS)*pregnant)
+      }
+     # print(parents)
+      if ((!FALSE)&&(verbose)) {
+        # str(c(na.omit(pop$parent[which(pop$age==3)])))
+         P0 <- length(na.omit(unique(pop$parent[which(pop$age==0)])))
+         P1 <- length(na.omit(unique(pop$parent[which(pop$age==1)])))
+         P2 <- length(na.omit(unique(pop$parent[which(pop$age==2)])))
+         P3 <- length(na.omit(unique(pop$parent[which(pop$age==3)])))
+         P4 <- length(na.omit(unique(pop$parent[which(pop$age==4)])))
+         print(c(P0=P0,P1=P1,P2=P2,P3=P3,P4=P4))
+      }
+     # indP <- which(pop$child>0)
+     # print(pop[pop$parent %in% pop$id,])
+      if (verbose) {
+         popC <- unique(pop[pop$parent %in% pop$id,c("age","parent")])
+         ta <- table(popC$age)
+         tc <- c(S=length(indS),F=length(indS)-parents,P=parents,C=sum(ta),ta)
+        # cat("-------------------------------\n")
+        # print(c(epoch=epoch))
+         print(tc)
+         print(tc[1:2]/sum(tc[1:2]))
+        # cat("-------------------------------\n")
+      }
+      np <- roundAmount(parents*lf[pattern])
+      birth <- vector("list",3)
+      names(birth) <- paste0(seq_along(birth),"C")
+      nrep <- round(10*daF$peer*daF$fert)
+     # s0 <- with(daF,rep(age,round(100*fert*peer)))
+      toBreak <- FALSE
+      for (i in rev(seq_along(birth))) {
+         b <- rep(NA,np[i])
+         for (k in seq_len(np[i])) {
+            for (u in c(1,2,3,4,5)) { ## c(1,2,3,4,5)
+               if (u>1)
+                  print(c(u=u))
+               s <- with(daF,round(rep(age,(10^u)*peer*fert)))
+               if (length(s))
                   break
-               ind <- which(daF$age==s[j])
-               daF$peer[ind] <- daF$peer[ind]-1
-               b[k] <- s[j]
             }
+            j <- try(sample(seq_along(s),1))
+            toBreak <- (inherits(j,"try-error"))
             if (toBreak)
                break
-            birth[[i]] <- b
+            ind <- which(daF$age==s[j])
+            daF$peer[ind] <- daF$peer[ind]-1
+            b[k] <- s[j]
          }
-         if (toBreak) {
-            message("Not ehough fertile females")
+         if (toBreak)
             break
-         }
-        # print(birth)
-        # str(pop[pop$age==0,])
-         for (i in sample(seq_along(birth))) { ## i - litter size
-            b <- birth[[i]]
-            for (j in sample(seq_along(b))) { # b[j] - это возраст
-               ind <- which(pop$sex=="F" & pop$age==b[j] &
-                            !pop$child)# & is.na(pop$parent))
-               if (!length(ind)) { ## no free females with such age
-                  message("no free females with such age")
-                  print(c(children=i,parent=j,age=b[j],ind=ind,ind3=ind3))
-                  next ## skip; reduce breeding rate
-               }
-               if (length(ind)>1)
-                  ind <- sample(ind,1)
-               pop$child[ind] <- -i
-              # ind2 <- which(pop$age==0 & is.na(pop$parent))
-              # if (length(ind2)>1)
-              #    ind2 <- sample(ind2,i)
-              # pop$parent[ind2] <- pop$id[ind] ## <- ind
+         birth[[i]] <- b
+      }
+      if (toBreak) {
+         message("Not ehough fertile females")
+         break
+      }
+     # print(birth)
+     # str(pop[pop$age==0,])
+      for (i in sample(seq_along(birth))) { ## i - litter size
+         b <- birth[[i]]
+         for (j in sample(seq_along(b))) { # b[j] - это возраст
+            ind <- which(pop$sex=="F" & pop$age==b[j] &
+                         !pop$child)# & is.na(pop$parent))
+            if (!length(ind)) { ## no free females with such age
+               message("no free females with such age")
+               print(c(children=i,parent=j,age=b[j],ind=ind,ind3=ind3))
+               next ## skip; reduce breeding rate
             }
+            if (length(ind)>1)
+               ind <- sample(ind,1)
+            pop$child[ind] <- -i
+           # ind2 <- which(pop$age==0 & is.na(pop$parent))
+           # if (length(ind2)>1)
+           #    ind2 <- sample(ind2,i)
+           # pop$parent[ind2] <- pop$id[ind] ## <- ind
          }
-         if (verbose) {
-           # доля бездетных, доля с годовиками, доля с двухлетками, доля с сеголет.
-            ageF <- daF$age[daF$fert>0]
-            indS <- which(pop$sex=="F" & pop$age %in% ageF & !pop$child)
-            indP <- which(pop$child>0)
-            popC <- unique(pop[pop$parent %in% pop$id,c("age","parent")])
-           # print(pop[pop$parent %in% pop$id,])
-            tc <- c(S=length(indS),table(popC$age))
-           # print(c(epoch=epoch))
-            print(tc)
-           # message(paste("epoch:",epoch))
+      }
+      if (verbose) {
+        # доля бездетных, доля с годовиками, доля с двухлетками, доля с сеголет.
+         ageF <- daF$age[daF$fert>0]
+         indS <- which(pop$sex=="F" & pop$age %in% ageF & !pop$child)
+         indP <- which(pop$child>0)
+         popC <- unique(pop[pop$parent %in% pop$id,c("age","parent")])
+        # print(pop[pop$parent %in% pop$id,])
+         tc <- c(S=length(indS),table(popC$age))
+        # print(c(epoch=epoch))
+         print(tc)
+        # message(paste("epoch:",epoch))
+      }
+      if (verbose) {
+         popC0 <- pop[!is.na(pop$parent) & pop$age==0,]
+         if (FALSE) {
+            print(table(popC0$sex))
+            print(popC0)
+            q()
          }
-         if (verbose) {
-            popC0 <- pop[!is.na(pop$parent) & pop$age==0,]
-            if (FALSE) {
-               print(table(popC0$sex))
-               print(popC0)
-               q()
-            }
-            F0 <- table(popC0$parent)
-               print(cbind(data.frame(LF["C0",,drop=FALSE])
-                          ,F=length(F0),C=sum(F0)))
-         }
-        # p <- unname(table(as.integer(F0)))
-        # p <- round(p/sum(p),3)
-      } ## birthSuccess
+         F0 <- table(popC0$parent)
+            print(cbind(data.frame(LF["C0",,drop=FALSE])
+                       ,F=length(F0),C=sum(F0)))
+      }
+     # p <- unname(table(as.integer(F0)))
+     # p <- round(p/sum(p),3)
       for (i in sample(tail(seq_along(mortality),-subad.ini))) { ## mort to adult
          ind1 <- which(pop$age==i)
          n1 <- length(ind1)
@@ -654,7 +442,7 @@
       if (verbose)
          print(nrow(pop))
       size.ls <- c(object.size(lifestory)*2^(-20))
-      if (size.ls>25) {
+      if ((isShiny)&&(size.ls>30)) {
         # nepoch <- epoch+2
          break
       }

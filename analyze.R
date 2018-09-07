@@ -244,7 +244,7 @@
                geom_histogram(binwidth=1,fill=col.hist)+
                geom_vline(xintercept=mean(reprod.cycle),col=col.line)+
                geom_vline(xintercept=median(reprod.cycle),col=col.line
-                         ,size=1.25,linetype=2)+
+                         ,linetype=2)+
                scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
                xlab("Interbirth interval, years")+ylab("")+
                facet_grid(.~lab)+

@@ -313,27 +313,27 @@ ui <- dashboardPage(skin = "purple"
                         ,column(9
                            ,fluidRow(NULL
                               ,column(4
-                                 ,plotOutput("plotCubs",height=height[3])
+                                 ,plotOutput("plotCubs",height=height[2])
                               )
                               ,column(3
-                                 ,plotOutput("plotDens",height=height[3])
+                                 ,plotOutput("plotDens",height=height[2])
                               )
                               ,column(3
-                                 ,plotOutput("plotAdults",height=height[3])
+                                 ,plotOutput("plotAdults",height=height[2])
                               )
                               ,column(2
-                                 ,plotOutput("plotInterbirth",height=height[3])
+                                 ,plotOutput("plotInterbirth",height=height[2])
                               )
                            )
                            ,fluidRow(NULL
                               ,column(4
-                                 ,plotOutput("plotSurvival",height=height[3])
+                                 ,plotOutput("plotSurvival",height=height[2])
                               )
                               ,column(3
-                                 ,plotOutput("plotLitterSize",height=height[3])
+                                 ,plotOutput("plotLitterSize",height=height[2])
                               )
                               ,column(3
-                                 ,plotOutput("plotLitterProduction",height=height[3])
+                                 ,plotOutput("plotLitterProduction",height=height[2])
                               )
                            )
                            ,fluidRow(NULL
@@ -553,7 +553,7 @@ server <- function(input, session, output) {
       updateSliderInput(session,"k2",value=res$k2)
    })
    observeEvent(input$randomize1, {
-      showNotification(closeButton=FALSE,duration=3
+      showNotification(closeButton=FALSE,duration=1
                       ,paste("Previous scenario:",input$seed1))
       message("*** Randomize scenario")
       res <- randomize(seed1=NA,seed2=NA)
@@ -574,7 +574,7 @@ server <- function(input, session, output) {
      # removeNotification(id="seed1")
    })
    observeEvent(input$randomize2, {
-      showNotification(closeButton=FALSE,duration=3
+      showNotification(closeButton=FALSE,duration=1
                       ,paste("Previous simulation:",input$seed2))
       message("*** Randomize simulation")
       res <- randomize(seed1=input$seed1,seed2=NA)
