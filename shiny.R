@@ -5,6 +5,7 @@ suppressMessages({
 })
 source("./main.R")
 height <- c("600px","248px","165px")
+sliderWidth <- c("100%","125%")[2]
 ui <- dashboardPage(skin = "purple"
    ,dashboardHeader(title = "Polar Bear Demography",disable=TRUE,titleWidth = 350)
    ,dashboardSidebar(NULL
@@ -117,6 +118,10 @@ ui <- dashboardPage(skin = "purple"
                      ,actionLink("randomize2","Randomize simulation"
                                 ,icon=icon("angle-down"))
                   )
+                  ,column(2
+                     ,actionLink("sensitive","Improve"
+                                ,icon=icon("angle-right"))
+                  )
               # )
             )
             ,fluidRow(NULL,class="emptymargin"
@@ -129,34 +134,144 @@ ui <- dashboardPage(skin = "purple"
                      ,fluidRow(NULL
                         ,column(3
                            ,sliderInput("max.age", "Max age, years"
+                                       ,width=sliderWidth
                                        ,min=25, max=40, value=init$max.age,step=1
                                        )
                         )
                         ,column(3
                            ,sliderInput("sexratio", "COY sex ratio (% of females)"
+                                       ,width=sliderWidth
                                        ,min=20, max=80,value=init$sexratio,step=0.1
                                        )
                         )
                         ,column(3
                            ,sliderInput("init.den", "Initial number of dens"
+                                       ,width=sliderWidth
                                        ,min=10, max=200,value=init$init.den,step=1,sep=""
                                        )
                         )
                         ,column(3
                            ,sliderInput("fertility", "Age specific fertility"
+                                       ,width=sliderWidth
                                        ,min=0, max=1,value=init$fertility,step=0.01,sep=""
                                        )
                         )
                      )
                      ,fluidRow(NULL
-                        ,column(3,
-                           sliderInput("litter", "Litter size",
-                                       min=1.0, max=2.5, value=init$litter,step=0.01
-                                      )
+                        ,column(3
+                           ,sliderInput("litter", "Litter size"
+                                       ,width=sliderWidth
+                                       ,min=1.0, max=2.5,value=init$litter,step=0.01
+                                       )
+                        )
+                        ,column(3
+                           ,sliderInput("indep.C1", "Broken yearling families"
+                                       ,width=sliderWidth
+                                       ,min=0, max=1
+                                       ,value=init$indep.fraction[2],step=0.01
+                                       )
+                        )
+                        ,column(3
+                           ,sliderInput("removal.rate","2M/1F human-caused removal rate"
+                                       ,width=sliderWidth
+                                       ,min=0,max=0.1,value=init$removal.rate,step=0.001
+                                       )
+                        )
+                        ,column(3
+                           ,sliderInput("removal.age","Age specific human-caused removal"
+                                       ,width=sliderWidth
+                                       ,min=0,max=1,value=init$removal.age,step=0.01
+                                       )
+                        )
+                     )
+                     ##~ ,fluidRow(
+                        ##~ column(6,
+                           ##~ sliderInput("adult", "Adult age range (DEPRECATED)",
+                                       ##~ min=3, max=40, value=c(6,25),step=1
+                                      ##~ )
+                        ##~ ),
+                     ##~ ),
+                     ,fluidRow(NULL
+                        ,column(3
+                           ,fluidRow(NULL
+                              ,column(10,"Litter size proportions:")
+                           )
+                           ,fluidRow(NULL
+                              ,column(4,numericInput("C1", "1C",init$litterF[1],step=0.001,width="80px"))
+                              ,column(4,numericInput("C2", "2C",init$litterF[2],step=0.001,width="80px"))
+                              ,column(4,numericInput("C3", "3C",init$litterF[3],step=0.001,width="80px"))
+                              ,column(4)
+                           )
+                        )
+                        ,column(3
+                           ,textOutput("mort.C1.depend")
+                           ,textOutput("mort.C1.indep")
+                           ,textOutput("mort.C2.depend")
+                           ,textOutput("mort.C2.indep")
+                           ##~ ,sliderInput("mortality.yearling", "Yearling mortality",
+                                       ##~ min=0.1, max=0.5,value=mortality.yearling,
+                                       ##~ step=0.001
+                                      ##~ )
+                        )
+                        ,column(3
+                           ,sliderInput("pregnant", "Birth success"
+                                       ,width=sliderWidth
+                                       ,min=0.2, max=1.0,value=init$pregnant
+                                       ,step=0.01
+                                       )
                         )
                         ,column(3
                            ,fluidRow(NULL
-                              ,"Random seed:"
+                              ,textOutput("scenario")
+                             # ,actionLink("randomize1","Randomize scenario")
+                             # ,actionLink("randomize2","Randomize simulation")
+                           )
+                           ,fluidRow(NULL
+                             # ,actionLink("simulate", "Simulate"
+                             #            ,icon=icon("angle-double-right"))
+                           )
+                        )
+                     )
+                     ,fluidRow(NULL
+                        ,column(3
+                           ,sliderInput("mortality.cub", "Dependent COY mortality"
+                                       ,width=sliderWidth
+                                       ,min=0.2, max=0.5,value=init$mortality.cub
+                                       ,step=0.01
+                                       )
+                        )
+                        ,column(3
+                           ,sliderInput("mortality.adult", "Adult mortality",
+                                       ,width=sliderWidth
+                                       ,min=0.01, max=0.15,value=init$mortality.adult
+                                       ,step=0.005
+                                       )
+                        )
+                        ,column(3)
+                     )
+                    # ,"Parameters of demography tube:"
+                     ,fluidRow(NULL
+                        ,column(3
+                           ,sliderInput("k1d", "Mortality rate of dependent young"
+                                       ,width=sliderWidth
+                                       ,min=1,max=20,value=init$k1d,step=0.1
+                                       )
+                        )
+                        ,column(3
+                           ,sliderInput("k1i", "Mortality rate of independent youngs",
+                                       ,width=sliderWidth
+                                       ,min=1,max=20, value=init$k1i,step=0.1
+                                       )
+                        )
+                        ,column(3
+                           ,sliderInput("k2", "Mortality rate of aging"
+                                       ,width=sliderWidth
+                                       ,min=1, max=20, value=init$k2,step=0.1
+                                       )
+                        )
+                        ,column(3
+                           ,fluidRow(NULL
+                              ,column(12,"Random seed:")
                            )
                            ,fluidRow(NULL
                               ,column(6
@@ -179,95 +294,6 @@ ui <- dashboardPage(skin = "purple"
                                  ##~ ,textOutput("seed2")
                               ##~ )
                            )
-                        )
-                        ,column(2
-                           ,fluidRow(NULL
-                              ,textOutput("scenario")
-                             # ,actionLink("randomize1","Randomize scenario")
-                             # ,actionLink("randomize2","Randomize simulation")
-                           )
-                           ,fluidRow(NULL
-                             # ,actionLink("simulate", "Simulate"
-                             #            ,icon=icon("angle-double-right"))
-                           )
-                        )
-                     )
-                     ##~ ,fluidRow(
-                        ##~ column(6,
-                           ##~ sliderInput("adult", "Adult age range (DEPRECATED)",
-                                       ##~ min=3, max=40, value=c(6,25),step=1
-                                      ##~ )
-                        ##~ ),
-                     ##~ ),
-                     ,fluidRow(NULL
-                        ,column(3,
-                           sliderInput("mortality.cub", "Dependent COY mortality",
-                                       min=0.2, max=0.5,value=init$mortality.cub,
-                                       step=0.01
-                                      )
-                        )
-                        ,column(3
-                           ,textOutput("mort.C1.depend")
-                           ,textOutput("mort.C1.indep")
-                           ,textOutput("mort.C2.depend")
-                           ,textOutput("mort.C2.indep")
-                           ##~ ,sliderInput("mortality.yearling", "Yearling mortality",
-                                       ##~ min=0.1, max=0.5,value=mortality.yearling,
-                                       ##~ step=0.001
-                                      ##~ )
-                        )
-                        ,column(3,
-                           sliderInput("mortality.adult", "Adult mortality",
-                                       min=0.01, max=0.15,value=init$mortality.adult,
-                                       step=0.005
-                                      )
-                        )
-                        ,column(3,
-                           sliderInput("pregnant", "Birth success",
-                                       min=0.2, max=1.0,value=init$pregnant,
-                                       step=0.01
-                                      )
-                        )
-                     )
-                     ,fluidRow(NULL
-                        ,column(4
-                           ,fluidRow(
-                              "Litter size proportions:"
-                           )
-                           ,fluidRow(NULL
-                              ,column(4,numericInput("C1", "1C",init$litterF[1],step=0.001))
-                              ,column(4,numericInput("C2", "2C",init$litterF[2],step=0.001))
-                              ,column(4,numericInput("C3", "3C",init$litterF[3],step=0.001))
-                           )
-                           ##~ ,fluidRow(NULL
-                              ##~ ,column(4,textInput("C1", "1C",litterF[1]))
-                              ##~ ,column(4,textInput("C2", "2C",litterF[2]))
-                              ##~ ,column(4,textInput("C3", "3C",litterF[3]))
-                           ##~ )
-                        )
-                     )
-                    # ,"Parameters of demography tube:"
-                     ,fluidRow(NULL
-                        ,column(3,
-                           sliderInput("k1d", "Mortality rate of dependent young",
-                                       min=1, max=20, value=init$k1d,step=0.1
-                                      )
-                        )
-                        ,column(3,
-                           sliderInput("k1i", "Mortality rate of independent youngs",
-                                       min=1, max=20, value=init$k1i,step=0.1
-                                      )
-                        )
-                        ,column(3,
-                           sliderInput("k2", "Mortality rate of aging",
-                                       min=1, max=20, value=init$k2,step=0.1
-                                      )
-                        )
-                        ,column(3,
-                           sliderInput("indep.C1", "Broken yearling families",
-                                       min=0, max=1
-                                       ,value=init$indep.fraction[2],step=0.01
-                                      )
                         )
                      )
                      ,fluidRow(NULL
@@ -293,15 +319,24 @@ ui <- dashboardPage(skin = "purple"
                     # collapsible = !TRUE,collapsed=!FALSE,
                     # height = "350px",
                      ,fluidRow(NULL
+                        ,column(2)
                         ,column(4,
-                           plotOutput("curve.lin")
+                           plotOutput("curve.lin",height=height[2])
                         )
                         ,column(4,
-                           plotOutput("curve.log")
+                           plotOutput("curve.log",height=height[2])
                         )
-                        ,column(4,
-                           plotOutput("curve.fert")
+                        ,column(2)
+                     )
+                     ,fluidRow(NULL
+                        ,column(2)
+                        ,column(4
+                           ,plotOutput("curve.fert",height=height[2])
                         )
+                        ,column(4
+                           ,plotOutput("curve.removal",height=height[2])
+                        )
+                        ,column(2)
                      )
                   )
                   ,tabPanel(title="Results",value="Results"#,icon=icon("signal")
@@ -356,6 +391,10 @@ ui <- dashboardPage(skin = "purple"
                            )
                            ,column(2)
                        # )
+                     )
+                  )
+                  ,tabPanel(title="",value="Sensitive",icon=icon("list")
+                     ,fluidRow(NULL
                      )
                   )
                ) ## tabBox
@@ -481,6 +520,7 @@ server <- function(input, session, output) {
           ,tube.lin=tube
           ,tube.log=tube+scale_y_log10()
           ,tube.fert=fertilityCurve(age=age,u=input$fertility,plot=TRUE)
+          ,tube.removal=removalCurve(age=age,u=input$removal.age,plot=TRUE)
           ,init.den=init.den
           ,litter=input$litter
           ,indep.fraction=indep.fraction
@@ -490,6 +530,8 @@ server <- function(input, session, output) {
           ,seed1=input$seed1
           ,seed2=input$seed2
           ,fertility=input$fertility
+          ,removal.rate=input$removal.rate
+          ,removal.age=input$removal.age
           ,k1d=k1d
           ,k1i=k1i
           ,k2=k2
@@ -513,25 +555,26 @@ server <- function(input, session, output) {
       message("*** Simulate (reactive)")
      # updateTabsetPanel(session,"tabset1",selected="Results") ## NOT WORKING
       rv <- params()
-      showModal(modalDialog(title = "Simulation in progress","Please wait"
-                       ,sise="s",easyClose = TRUE,footer = NULL))
-      res <- with(rv,simulate(max.age=max.age
-                             ,litter=litter
-                             ,sexratio=sexratio
-                             ,init.den=init.den
-                             ,pregnant=pregnant
-                             ,mortality.cub=mortality.cub
-                             ,mortality.adult=mortality.adult
-                             ,indep.fraction=indep.fraction
-                             ,fertility=input$fertility
-                             ,k1d=input$k1d
-                             ,k1i=input$k1i
-                             ,k2=input$k2
-                             ,seed1=input$seed1
-                             ,seed2=input$seed2
-                             ))
+     # print(c(rv=rv$seed2,input=input$seed2))
+      ##~ res <- with(rv,simulate(max.age=max.age
+                             ##~ ,litter=litter
+                             ##~ ,sexratio=sexratio
+                             ##~ ,init.den=init.den
+                             ##~ ,pregnant=pregnant
+                             ##~ ,mortality.cub=mortality.cub
+                             ##~ ,mortality.adult=mortality.adult
+                             ##~ ,indep.fraction=indep.fraction
+                             ##~ ,fertility=fertility
+                             ##~ ,removal.rate=removal.rate
+                             ##~ ,removal.age=removal.age
+                             ##~ ,k1d=k1d
+                             ##~ ,k1i=k1i
+                             ##~ ,k2=k2
+                             ##~ ,seed1=seed1
+                             ##~ ,seed2=seed2
+                             ##~ ))
+      res <- do.call("simulate",rv)
      # updateTabsetPanel(session,"restab",selected="Verbatim") ## NOT WORKING
-      removeModal()
       res
    })
    observeEvent(input$seed1, {
@@ -544,10 +587,12 @@ server <- function(input, session, output) {
       updateSliderInput(session,"sexratio",value=res$sexratio)
       updateSliderInput(session,"init.den",value=res$init.den)
       updateSliderInput(session,"pregnant",value=res$pregnant)
-      updateSliderInput(session,"indep.C1",value=res$indep.C1)
+      updateSliderInput(session,"indep.C1",value=res$indep.fraction[2])
       updateSliderInput(session,"mortality.cub",value=res$mortality.cub)
       updateSliderInput(session,"mortality.adult",value=res$mortality.adult)
       updateSliderInput(session,"fertility",value=res$fertility)
+      updateSliderInput(session,"removal.rate",value=res$removal.rate)
+      updateSliderInput(session,"removal.age",value=res$removal.age)
       updateSliderInput(session,"k1d",value=res$k1d)
       updateSliderInput(session,"k1i",value=res$k1i)
       updateSliderInput(session,"k2",value=res$k2)
@@ -568,6 +613,8 @@ server <- function(input, session, output) {
       updateSliderInput(session,"mortality.cub",value=res$mortality.cub)
       updateSliderInput(session,"mortality.adult",value=res$mortality.adult)
       updateSliderInput(session,"fertility",value=res$fertility)
+      updateSliderInput(session,"removal.rate",value=res$removal.rate)
+      updateSliderInput(session,"removal.age",value=res$removal.age)
       updateSliderInput(session,"k1d",value=res$k1d)
       updateSliderInput(session,"k1i",value=res$k1i)
       updateSliderInput(session,"k2",value=res$k2)
@@ -675,13 +722,15 @@ server <- function(input, session, output) {
    output$curve.fert <- renderPlot({
       params()$tube.fert
    })
+   output$curve.removal <- renderPlot({
+      params()$tube.removal
+   })
    analysis <- reactive({
       lifestory <- result()
       updateTabsetPanel(session,"tabset1",selected="Results")
-      showModal(modalDialog(title = "Analysis in progress","Please wait"
-                       ,sise="s",easyClose = TRUE,footer = NULL))
       ret <- analyze(lifestory)
-      removeModal()
+      showNotification(closeButton=FALSE,duration=2,"Figures will be updated soon"
+                      ,type="warning")
       ret
    })
    output$plotAgeStructure <- renderPlot({
@@ -724,4 +773,7 @@ server <- function(input, session, output) {
    output$plotLitterProduction <- renderPlot({
       analysis()$p10
    })
+}
+if (.argv0.()=="shiny.R") {
+   runApp(shinyApp(ui=ui,server=server),launch.browser=TRUE)
 }

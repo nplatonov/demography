@@ -1,4 +1,8 @@
 'analyze' <- function(LS) {
+   isShiny <- ("shiny" %in% loadedNamespaces())
+   if (isShiny)
+      showModal(modalDialog(title = "Analysis in progress","Please wait"
+                       ,size="s",easyClose = TRUE,footer = NULL))
    input <- LS$input
    lifestory <- LS$output
    epoch <- sort(unique(lifestory$epoch))
@@ -22,6 +26,9 @@
    res <- NULL
    natalityRate <- NA
    if (TRUE) {
+      if (isShiny)
+         showNotification(closeButton=TRUE,"Litter size...",id="litter"
+                         ,duration=99)
       pop <- lifestory[lifestory$epoch>c(0,max.age)[2] &
                        lifestory$epoch<=max(epoch)-0*4 &
                        lifestory$season==0,]
@@ -92,9 +99,14 @@
                facet_grid(.~age,scales="free")+
                p0
       }
+      if (isShiny)
+         removeNotification(id="litter")
      # stop()
    }
    if (TRUE) {
+      if (isShiny)
+         showNotification(closeButton=TRUE,"Actual survival",id="survival"
+                         ,duration=99)
      # print(tail(lifestory[lifestory$season==9,],100))
      # str(lifestory[lifestory$season==9 & lifestory$epoch==max(lifestory$epoch),])
      # str(lifestory[lifestory$season==0 & lifestory$epoch==max(lifestory$epoch),])
@@ -143,8 +155,13 @@
                p0
       }
      # print(p9+p0);q()
+      if (isShiny)
+         removeNotification(id="survival")
    }
    if (TRUE) {
+      if (isShiny)
+         showNotification(closeButton=TRUE,"Population structure",id="structure"
+                         ,duration=99)
       epoch <- epoch[(epoch*ns) %% ns == 0 & epoch>=max(lifestory$age)-4]
       pop <- lifestory[lifestory$epoch %in% epoch & lifestory$season==0,]
       if (nrow(pop)) {
@@ -156,8 +173,13 @@
                            ,colour=col.base,width=1)+
                p0
       }
+      if (isShiny)
+         removeNotification(id="structure")
    }
    if (TRUE) {
+      if (isShiny)
+         showNotification(closeButton=TRUE,"Growth rate",id="growth"
+                         ,duration=99)
       res <- NULL
       growth <- NA
       for (s in c(0,1)) {
@@ -211,8 +233,13 @@
             guides(colour=guide_legend(nrow=2))+
             guides(linetype=guide_legend(nrow=2))+
             NULL
+      if (isShiny)
+         removeNotification(id="growth")
    }
    if (TRUE) {
+      if (isShiny)
+         showNotification(closeButton=TRUE,"Interbirth interval",id="interbirth"
+                         ,duration=99)
       done <- lifestory$id[lifestory$season==9]
      # print(lifestory[ind,])
      # print(lifestory[lifestory$id=="dphefunx",])
@@ -250,7 +277,12 @@
                facet_grid(.~lab)+
                p0
       }
+      if (isShiny)
+         removeNotification(id="interbirth")
       if (TRUE) {
+         if (isShiny)
+            showNotification(closeButton=TRUE,"Lifespan denning",id="denning"
+                            ,duration=99)
         # ursa:::.elapsedTime("B1")
          res <- lapply(parent,function(id) {
             if (length(parent)<3)
@@ -277,6 +309,11 @@
            # print(ta)
             list(dens=length(ta),cubs=sum(ta),adults=adults)
          })
+         if (isShiny)
+            removeNotification(id="denning")
+         if (isShiny)
+            showNotification(closeButton=TRUE,"Lifespan fertililty",id="fertility"
+                            ,duration=99)
         # ursa:::.elapsedTime("B2")
          if (length(parent)<3)
             str(res)
@@ -338,10 +375,14 @@
                   facet_grid(.~adults.lab)+
                   p0
          }
+         if (isShiny)
+            removeNotification(id="fertility")
       }
      # ursa:::.elapsedTime("C")
      # epoch <- as.numeric(names(lifestory))
    }
+   if (isShiny)
+      removeModal()
    list(input=input,p0=p0,p1=p1,p2=p2,p3=p3,p4=p4,p5=p5,p6=p6,p7=p7,p8=p8,p9=p9
        ,p10=p10)
 }

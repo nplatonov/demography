@@ -9,9 +9,9 @@ bibliography:
 biblio-style: apalike
 link-citations: true
 csl: "`r file.path('C:/platt/R/style/',c('geochronometria.csl'
-                                        ,'platt.csl'
-                                        ,'water-alternatives.csl'
                                         ,'platt2.csl'
+                                        ,'water-alternatives.csl'
+                                        ,'platt3.csl'
                                         ,'springer-socpsych-author-date.csl'
                                         ,'iaa-transactions.csl'
                                         ,'gost-r-7-0-5-2008.csl'
