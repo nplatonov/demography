@@ -6,9 +6,11 @@
                       ,k1d=NA,k1i=NA,k2=NA
                       ,seed1=NA,seed2=NA,quiet=FALSE,...) {
    isShiny <- ("shiny" %in% loadedNamespaces())
-   if (isShiny)
+   if ((isShiny)&&(!quiet)) {
       showModal(modalDialog(title = "Simulation in progress","Please wait"
                        ,size="s",easyClose = TRUE,footer = NULL))
+      on.exit(removeModal())
+   }
   # set.seed(NULL)
   # if (is.na(seed1)) {
   #    seed1 <- sample(100:999,1)
@@ -36,8 +38,10 @@
    init <- updatePrm(init,prm)
   # cat("init:\n")
   # str(init)
-   for (p in names(init))
-      assign(p,init[[p]])
+   for (pass in names(init))
+      assign(pass,init[[pass]])
+   rm(litterF) ## NOT IMPLEMENTED
+   max.age <- as.integer(round(max.age))
    nepoch <- ifelse(update,15L,max.age+50L)
    input <- list(max.age=max.age,litter=litter,sex=sexratio
                 ,dens=init.den,pregn=pregnant
@@ -54,7 +58,6 @@
   # indep.fraction <- c(C0=0.001,C1=indep.C1,C2=0.99) # 0.27 ## Broken families
   # pregnant <- 0.64 #0.63
    p <- litterFraction(litter)
-   L <- sum(seq_along(litter)*litter)
    age <- c(0,seq(max.age))
    if (devRemoval <- FALSE) {
       p <- removalCurve(as.integer(age[-1]),u=removal.age,plot=TRUE)
@@ -76,6 +79,8 @@
    daM <- data.frame(age=age1,peer=NA)
    daF <- data.frame(age=age1,fert=NA,peer=NA)
    daF$fert <- fertilityCurve(age1,u=fertility)
+  # print(daF)
+  # q()
    daR <- data.frame(age=age1,vuln=removalCurve(age1,u=removal.age),peer=0)
    if (!update) {
       checkIS <- !TRUE
@@ -112,6 +117,9 @@
    else {
       lifestory <- history$output
       epoch0 <- max(lifestory$epoch)
+      if (epoch0<max(lifestory$age)+15) {
+         return(list(input=init,output=NULL))
+      }
       pop <- lifestory[lifestory$epoch==epoch0 & lifestory$season==1,]
       pop$epoch <- pop$epoch+1L
      # np <- -pop$child[pop$child<0]
@@ -212,7 +220,7 @@
          ind3 <- which(pop$age==0 & is.na(pop$parent))
          if (!length(ind3)) {
             if (!isShiny)
-               stop("Lost children")
+               message("Lost children")
             pop$child[ind2] <- 0L
             next
          }
@@ -282,7 +290,9 @@
       ind <- which(pop$sex=="F" & !pop$child)
       peer <- table(pop$age[ind])
       daF$peer <- 0
-      daF$peer[match(as.integer(names(peer)),daF$age)] <- as.integer(peer)
+      indF <- match(as.integer(names(peer)),daF$age)
+     # daF$peer[match(as.integer(names(peer)),daF$age)] <- as.integer(peer)
+      daF$peer[na.omit(indF)] <- as.integer(peer[which(!is.na(indF))])
       ageF <- daF$age[daF$fert>0]
       indS <- which(pop$sex=="F" & pop$age %in% ageF &
                     !pop$child & is.na(pop$parent))
@@ -334,16 +344,17 @@
          b <- rep(NA,np[i])
          for (k in seq_len(np[i])) {
             for (u in c(1,2,3,4,5)) { ## c(1,2,3,4,5)
-               if (u>1)
+               if ((u>10000001)&&(!isShiny))
                   print(c(u=u))
                s <- with(daF,round(rep(age,(10^u)*peer*fert)))
                if (length(s))
                   break
             }
-            j <- try(sample(seq_along(s),1))
-            toBreak <- (inherits(j,"try-error"))
-            if (toBreak)
+            j <- .sample(seq_along(s),1)
+            if (!length(j)) {
+               toBreak <- TRUE
                break
+            }
             ind <- which(daF$age==s[j])
             daF$peer[ind] <- daF$peer[ind]-1
             b[k] <- s[j]
@@ -353,8 +364,8 @@
          birth[[i]] <- b
       }
       if (toBreak) {
-         message("Not ehough fertile females")
-         break
+         message("Not enough fertile females")
+        # break
       }
      # ursa:::.elapsedTime("E")
      # print(birth)
@@ -517,6 +528,8 @@
         # nepoch <- epoch+2
          break
       }
+      if (toBreak)
+         break
      # if (epoch==3)
      #    break
    }
@@ -527,6 +540,9 @@
          pb$close()
    }
    lifestory <- lifestory[!sapply(lifestory,is.null)]
+   if (!length(lifestory)) {
+      return(list(input=init,output=NULL))
+   }
    liferow <- unname(sapply(lifestory,nrow))
    LS <- pop[rep(1,sum(liferow)),]
    k1 <- 1
@@ -537,7 +553,5 @@
       k1 <- k2+1
    }
    rownames(LS) <- NULL
-   if (isShiny)
-      removeModal()
    list(input=init,output=LS)
 }

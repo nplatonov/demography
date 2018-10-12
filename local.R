@@ -22,38 +22,17 @@ invisible({
       if (TRUE) {
          if (!toUpdate) {
             lifestory <- simulate(seed1=NA,seed2=NA)
-            q()
+            saveRDS(lifestory,"lifestory.rds")
          }
-         else {
-            set.seed(NULL)
+         if (TRUE) {
             pdf(width=3.6,height=2.4)
-            s <- 1.15^(seq(-2,2))
-            for (p in rev(c("mortality.adult","mortality.cub"))) {
-               res <- data.frame(x=round(lifestory$input[[p]]*s,3)
-                                ,mean=NA,sd=NA)
-               res2 <- NULL
-               arglist <- list(lifestory,NA)
-               names(arglist) <- c("",p)
-               for (i in sample(seq(nrow(res)))) {
-                  arglist[[p]] <- res$x[i]
-                  g1 <- do.call("growthRate",arglist)
-                 # g1 <- growthRate(lifestory,mortality.adult=res$x[i])
-                  res$mean[i] <- mean(g1)
-                  res$sd[i] <- sd(g1)
-                 # desc <- paste0(res$x[i],"\n",sprintf("%.3f\u00B1%.3f",res$mean[i],res$sd[i]))
-                  desc <- paste0(sprintf("%.3f\u00B1%.3f",res$mean[i],res$sd[i]))
-                  res2 <- rbind(res2,data.frame(prm=res$x[i],value=g1,desc=desc))
-               }
-               print(res)
-               res2$desc <- factor(res2$desc,levels=unique(res2$desc),ordered=TRUE)
-               s1 <- ggplot(res2,aes(prm,value))+
-                     geom_violin(fill="yellow",colour="blue")+
-                     xlab("Adult Mortality")+ylab("Growth Rate")+
-                     facet_grid(.~desc,scales="free")+
-                     scale_x_continuous(breaks=res$x)
-               print(s1)
-            }
-            q()
+            res <- perturb(lifestory)
+            opW <- options(warn=1)
+            sapply(res,print)
+            options(opW)
+           # print("A")
+           # print(warnings())
+           # q()
          }
       }
       else if (TRUE) {
@@ -91,31 +70,43 @@ invisible({
                               ,seed1=NA
                               ,seed2=NA
                               )
-      if (!toUpdate)
-         saveRDS(lifestory,"lifestory.rds")
+      else
+         stop("Что дальше?")
    }
-   else
+   else {
       lifestory <- readRDS("lifestory.rds")
-  # LS <- lifestory[lifestory$epoch==max(lifestory$epoch) & lifestory$season==0,]
-  # print(nrow(LS))
-  # print(lifestory[lifestory$id=="gdq9gs2e",])
-   res <- analyze(lifestory)
-   if (!FALSE) {
-      pdf(width=3.6,height=2.4)
-      with(res,{
-        # print(p7+facet_grid(age~.)+p0)
-        # print(p7+facet_grid(.~age)+p0)
-        # print(p8+facet_grid(age~.)+p0)
-         print(p6)
-         print(p5)
-         print(p8+facet_grid(.~age)+p0)
-         print(p10)
-         print(p1)
-         print(p2)
-         print(p3)
-         print(p4)
-         print(p9)
-      })
+     # LS <- lifestory[lifestory$epoch==max(lifestory$epoch) & lifestory$season==0,]
+     # print(nrow(LS))
+     # print(lifestory[lifestory$id=="gdq9gs2e",])
+     # ursa:::.elapsedTime("============== analysis start ================")
+      res <- analyze(lifestory,options="none")
+     # ursa:::.elapsedTime("============== analysis finish ================")
+      if (!FALSE) {
+         pdf(width=3.6,height=2.4)
+         with(res,{
+           # print(p7+facet_grid(age~.)+p0)
+           # print(p7+facet_grid(.~age)+p0)
+           # print(p8+facet_grid(age~.)+p0)
+            if (!is.null(p6))
+               print(p6)
+            if (!is.null(p5))
+               print(p5)
+            if (!is.null(p8))
+               print(p8+facet_grid(.~age)+p0)
+            if (!is.null(p10))
+               print(p10)
+            if (!is.null(p1))
+               print(p1)
+            if (!is.null(p2))
+               print(p2)
+            if (!is.null(p3))
+               print(p3)
+            if (!is.null(p4))
+               print(p4)
+            if (!is.null(p9))
+               print(p9)
+         })
+      }
    }
 })
 warnings()

@@ -1,4 +1,19 @@
-'analyze' <- function(LS) {
+'analyze' <- function(LS,options="") {
+   if (missing(LS))
+      return(list(input=NULL,p0=NULL,p1=NULL,p2=NULL,p3=NULL,p4=NULL,p5=NULL
+                 ,p6=NULL,p7=NULL,p8=NULL,p9=NULL,p10=NULL))
+   isNone <- length(grep("none",options,ignore.case=TRUE))>0
+   isAll <- length(options)==0 | nchar(options)==0 |
+            length(grep("all",options,ignore.case=TRUE))>0
+   isLitter <- isAll | length(grep("litter",options,ignore.case=TRUE))>0 ## p7 p8 p10
+   isSurvival <- isAll | length(grep("(surv|mort)",options,ignore.case=TRUE))>0 ## p9
+   isStructure <- isAll | length(grep("(struct|peer)",options,ignore.case=TRUE))>0 ## p6
+   isGrowthRate <- isAll | length(grep("(growth|popsize)",options,ignore.case=TRUE))>0 ## p5
+   isInterbirth <- isAll | length(grep("interbirth",options,ignore.case=TRUE))>0 ## p1
+   isDenning <- isAll | length(grep("denning",options,ignore.case=TRUE))>0 ## p2 p3 p4
+   print(c(All=isAll,None=isNone,Litter=isLitter,Survival=isSurvival
+          ,Structure=isStructure,GrowthRate=isGrowthRate
+          ,Interbirth=isInterbirth))
    isShiny <- ("shiny" %in% loadedNamespaces())
    if (isShiny)
       showModal(modalDialog(title = "Analysis in progress","Please wait"
@@ -10,22 +25,17 @@
    ns <- length(season)
    max.age <- max(lifestory$age)
    subad.ini <- 3
-   col.base <- c(green="#3C8D8C",blue="#428BCA",purpur="#605CA8"
-                ,orange="#F39C12")[2]
-   col.bg <- paste0(col.base,"40")
-   col.hist <- paste0(col.base,"80")
-   col.line <- paste0(col.base,"80")
-   col.strip <- paste0(col.base,"60")
+   cs <- colorScheme()
    p0 <- theme_grey()+
-         theme(panel.background=element_rect(fill=col.bg))+
-         theme(strip.background=element_rect(fill=col.strip))+#,colour="red"))
+         theme(panel.background=element_rect(fill=cs$bg))+
+         theme(strip.background=element_rect(fill=cs$strip))+#,colour="red"))
          theme(legend.margin=margin(t=-1,b=0,unit='char'))
         # theme(legend.key.size=size(1,unit="char"))
    p10 <- p9 <- p8 <- p7 <- p6 <- p5 <- p4 <- p3 <- p2 <- p1 <- NULL
   # pdf("res1.pdf",width=8,height=4)
    res <- NULL
    natalityRate <- NA
-   if (TRUE) {
+   if (isLitter) {
       if (isShiny)
          showNotification(closeButton=TRUE,"Litter size...",id="litter"
                          ,duration=99)
@@ -90,10 +100,10 @@
          res3$age <- factor(res3$age,levels=unique(res3$age),ordered=TRUE)
          p7 <- ggplot(res,aes(epoch,value,colour=cubs))+geom_line()
          p8 <- ggplot(res,aes(cubs,value))+
-               geom_violin(fill=col.hist,colour=col.base)+
+               geom_violin(fill=cs$hist,colour=cs$base)+
                xlab("Age-specific litter Size")+ylab("Proportion")
          p10 <- ggplot(res3,aes(age,value))+
-               geom_violin(fill=col.hist,colour=col.base)+
+               geom_violin(fill=cs$hist,colour=cs$base)+
                xlab("Age")+ylab("Litter Production")+
                scale_x_discrete(breaks=NULL)+
                facet_grid(.~age,scales="free")+
@@ -103,7 +113,7 @@
          removeNotification(id="litter")
      # stop()
    }
-   if (TRUE) {
+   if (isSurvival) {
       if (isShiny)
          showNotification(closeButton=TRUE,"Actual survival",id="survival"
                          ,duration=99)
@@ -148,7 +158,7 @@
       if (!toSkip) {
          res$Label <- factor(res$Label,levels=label,ordered=TRUE)
          p9 <- ggplot(res,aes(Label,Survival))+
-               geom_violin(fill=col.hist,colour=col.base)+
+               geom_violin(fill=cs$hist,colour=cs$base)+
                xlab("Age Structure")+ylab("Actual Survival")+
                scale_x_discrete(breaks=NULL)+
                facet_grid(.~Label,scales="free")+
@@ -158,7 +168,7 @@
       if (isShiny)
          removeNotification(id="survival")
    }
-   if (TRUE) {
+   if (isStructure) {
       if (isShiny)
          showNotification(closeButton=TRUE,"Population structure",id="structure"
                          ,duration=99)
@@ -170,13 +180,13 @@
          p6 <- ggplot(a1,aes(age,size))+
               # geom_violin(aes(group=cut_width(age,1)))+
                geom_boxplot(aes(group=cut_width(age,1)),outlier.alpha=0.5
-                           ,colour=col.base,width=1)+
+                           ,colour=cs$base,width=1)+
                p0
       }
       if (isShiny)
          removeNotification(id="structure")
    }
-   if (TRUE) {
+   if (isGrowthRate) {
       if (isShiny)
          showNotification(closeButton=TRUE,"Growth rate",id="growth"
                          ,duration=99)
@@ -236,11 +246,8 @@
       if (isShiny)
          removeNotification(id="growth")
    }
-   if (TRUE) {
-      if (isShiny)
-         showNotification(closeButton=TRUE,"Interbirth interval",id="interbirth"
-                         ,duration=99)
-      done <- lifestory$id[lifestory$season==9]
+   if (isInterbirth | isDenning) {
+     # done <- lifestory$id[lifestory$season==9]
      # print(lifestory[ind,])
      # print(lifestory[lifestory$id=="dphefunx",])
      # ind <- which(epoch>=c(0,max.age)[2] & round(epoch*ns) %% ns == 0)
@@ -255,131 +262,144 @@
          ind <- which(!is.na(pop$parent) & pop$age==0)
          parent <- unique(pop$id[pop$id %in% pop$parent[ind]])
          parent <- sample(parent)
-        # ursa:::.elapsedTime("A1")
-         reprod.cycle <- unlist(lapply(parent,function(id) {
-            ind2 <- which(pop$parent==id & pop$age==0)
-            ta <- as.integer(names(table(pop$epoch[ind2])))
-            if (length(ta)<2)
-               return(NULL)
-            diff(ta)
-         }))
-       #  ursa:::.elapsedTime("A2")
-         print(table(reprod.cycle))
-         print(summary(reprod.cycle))
-         lab <- sprintf("%.2f\u00B1%.2f",mean(reprod.cycle),sd(reprod.cycle))
-         p1 <- ggplot(data.frame(v=reprod.cycle,lab=lab),aes(v,stat(density)))+
-               geom_histogram(binwidth=1,fill=col.hist)+
-               geom_vline(xintercept=mean(reprod.cycle),col=col.line)+
-               geom_vline(xintercept=median(reprod.cycle),col=col.line
+      }
+      else {
+         parent <- character()
+         if (isInterbirth)
+            isInterbirth <- FALSE
+         if (isDenning)
+            isDenning <- FALSE
+      }
+   }
+   if (isInterbirth) {
+      if (isShiny)
+         showNotification(closeButton=TRUE,"Interbirth interval",id="interbirth"
+                         ,duration=99)
+      ind <- which(!is.na(pop$parent) & pop$age==0)
+      parent <- unique(pop$id[pop$id %in% pop$parent[ind]])
+      parent <- sample(parent)
+     # ursa:::.elapsedTime("A1")
+      reprod.cycle <- unlist(lapply(parent,function(id) {
+         ind2 <- which(pop$parent==id & pop$age==0)
+         ta <- as.integer(names(table(pop$epoch[ind2])))
+         if (length(ta)<2)
+            return(NULL)
+         diff(ta)
+      }))
+    #  ursa:::.elapsedTime("A2")
+      print(table(reprod.cycle))
+      print(summary(reprod.cycle))
+      lab <- sprintf("%.2f\u00B1%.2f",mean(reprod.cycle),sd(reprod.cycle))
+      p1 <- ggplot(data.frame(v=reprod.cycle,lab=lab),aes(v,stat(density)))+
+            geom_histogram(binwidth=1,fill=cs$hist)+
+            geom_vline(xintercept=mean(reprod.cycle),col=cs$line)+
+            geom_vline(xintercept=median(reprod.cycle),col=cs$line
+                      ,linetype=2)+
+            scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
+            xlab("Interbirth interval, years")+ylab("")+
+            facet_grid(.~lab)+
+            p0
+      if (isShiny)
+         removeNotification(id="interbirth")
+   }
+   if (isDenning) {
+      if (isShiny)
+         showNotification(closeButton=TRUE,"Lifespan denning",id="denning"
+                         ,duration=99)
+     # ursa:::.elapsedTime("B1")
+      res <- lapply(parent,function(id) {
+         if (length(parent)<3)
+            print(pop[pop$id==id,])
+         ind2 <- which(pop$parent==id & pop$age==0 &
+                       pop$epoch<=max(epoch)-4*1)
+         ta <- table(pop$epoch[ind2])
+         if (length(parent)<3)
+            print(pop[ind2,])
+         child <- pop$id[ind2]
+         if (length(parent)<3)
+            print(child)
+         pop2 <- pop[pop$id %in% child & pop$age>subad.ini,,drop=FALSE]
+         if (!nrow(pop2))
+            adults <- 0
+         else {
+            if (length(parent)<3)
+               print(pop2)
+            ad <- aggregate(pop2$age,list(id=pop2$id),max)
+            if (length(parent)<3)
+               print(ad)
+            adults <- nrow(ad)
+         }
+        # print(ta)
+         list(dens=length(ta),cubs=sum(ta),adults=adults)
+      })
+      if (isShiny)
+         removeNotification(id="denning")
+      if (isShiny)
+         showNotification(closeButton=TRUE,"Lifespan fertililty",id="fertility"
+                         ,duration=99)
+     # ursa:::.elapsedTime("B2")
+      if (length(parent)<3)
+         str(res)
+      res <- do.call("rbind",lapply(res,as.data.frame))
+      rownames(res) <- parent
+      if (nrow(res)>2) {
+         if (FALSE) {
+            dens <- res$dens
+            cubs <- res$cubs
+            adults <- res$adults
+            print(table(dens))
+            print(table(cubs))
+            print(table(adults))
+         }
+         print(summary(res))
+         dens <- rep("",length(res$dens))
+         dens[res$dens==1] <- "single"
+         dens[res$dens==0] <- "none"
+         dens[res$dens>1] <- "multiple"
+         tden <- table(dens)
+         tden <- round(100*tden/sum(tden),1)
+         print(tden)
+         adults <- res$adults
+         tadult <- table(adults)
+         tadult <- round(100*tadult/sum(tadult),1)
+         print(tadult)
+         res$dens.lab <- sprintf("%.2f\u00B1%.2f Never=%.2f Once=%.2f"
+                                ,mean(res$dens),sd(res$dens)
+                                ,tden[2]/100,tden[3]/100)
+         res$cubs.lab <- sprintf("%.2f\u00B1%.2f Cub Production = %.2f\u00B1%.2f"
+                                ,mean(res$cubs),sd(res$cubs)
+                                ,mean(natalityRate),sd(natalityRate))
+         res$adults.lab <- sprintf("%.2f\u00B1%.2f",mean(res$adults),sd(res$adults))
+         p2 <- ggplot(res,aes(dens,stat(density)))+
+               geom_histogram(binwidth=1,fill=cs$hist)+
+               geom_vline(xintercept=mean(res$dens),col=cs$line)+
+               geom_vline(xintercept=median(res$dens),col=cs$line
                          ,linetype=2)+
                scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
-               xlab("Interbirth interval, years")+ylab("")+
-               facet_grid(.~lab)+
+               xlab("Dens during lifespan")+ylab("")+
+               facet_grid(.~dens.lab)+
+               p0
+         p3 <- ggplot(res,aes(cubs,stat(density)))+
+               geom_histogram(binwidth=1,fill=cs$hist)+
+               geom_vline(xintercept=mean(res$cubs),col=cs$line)+
+               geom_vline(xintercept=median(res$cubs),col=cs$line
+                         ,linetype=2)+
+               scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
+               xlab("Cubs during lifespan")+ylab("")+
+               facet_grid(.~cubs.lab)+
+               p0
+         p4 <- ggplot(res,aes(adults,stat(density)))+
+               geom_histogram(binwidth=1,fill=cs$hist)+
+               geom_vline(xintercept=mean(res$adults),col=cs$line)+
+               geom_vline(xintercept=median(res$adults),col=cs$line
+                         ,linetype=2)+
+               scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
+               xlab("Survived cubs during lifespan")+ylab("")+
+               facet_grid(.~adults.lab)+
                p0
       }
       if (isShiny)
-         removeNotification(id="interbirth")
-      if (TRUE) {
-         if (isShiny)
-            showNotification(closeButton=TRUE,"Lifespan denning",id="denning"
-                            ,duration=99)
-        # ursa:::.elapsedTime("B1")
-         res <- lapply(parent,function(id) {
-            if (length(parent)<3)
-               print(pop[pop$id==id,])
-            ind2 <- which(pop$parent==id & pop$age==0 &
-                          pop$epoch<=max(epoch)-4*1)
-            ta <- table(pop$epoch[ind2])
-            if (length(parent)<3)
-               print(pop[ind2,])
-            child <- pop$id[ind2]
-            if (length(parent)<3)
-               print(child)
-            pop2 <- pop[pop$id %in% child & pop$age>subad.ini,,drop=FALSE]
-            if (!nrow(pop2))
-               adults <- 0
-            else {
-               if (length(parent)<3)
-                  print(pop2)
-               ad <- aggregate(pop2$age,list(id=pop2$id),max)
-               if (length(parent)<3)
-                  print(ad)
-               adults <- nrow(ad)
-            }
-           # print(ta)
-            list(dens=length(ta),cubs=sum(ta),adults=adults)
-         })
-         if (isShiny)
-            removeNotification(id="denning")
-         if (isShiny)
-            showNotification(closeButton=TRUE,"Lifespan fertililty",id="fertility"
-                            ,duration=99)
-        # ursa:::.elapsedTime("B2")
-         if (length(parent)<3)
-            str(res)
-         res <- do.call("rbind",lapply(res,as.data.frame))
-         rownames(res) <- parent
-         if (nrow(res)>2) {
-            if (FALSE) {
-               dens <- res$dens
-               cubs <- res$cubs
-               adults <- res$adults
-               print(table(dens))
-               print(table(cubs))
-               print(table(adults))
-            }
-            print(summary(res))
-            dens <- rep("",length(res$dens))
-            dens[res$dens==1] <- "single"
-            dens[res$dens==0] <- "none"
-            dens[res$dens>1] <- "multiple"
-            tden <- table(dens)
-            tden <- round(100*tden/sum(tden),1)
-            print(tden)
-            adults <- res$adults
-            tadult <- table(adults)
-            tadult <- round(100*tadult/sum(tadult),1)
-            print(tadult)
-            res$dens.lab <- sprintf("%.2f\u00B1%.2f Never=%.2f Once=%.2f"
-                                   ,mean(res$dens),sd(res$dens)
-                                   ,tden[2]/100,tden[3]/100)
-            res$cubs.lab <- sprintf("%.2f\u00B1%.2f Cub Production = %.2f\u00B1%.2f"
-                                   ,mean(res$cubs),sd(res$cubs)
-                                   ,mean(natalityRate),sd(natalityRate))
-            res$adults.lab <- sprintf("%.2f\u00B1%.2f",mean(res$adults),sd(res$adults))
-            p2 <- ggplot(res,aes(dens,stat(density)))+
-                  geom_histogram(binwidth=1,fill=col.hist)+
-                  geom_vline(xintercept=mean(res$dens),col=col.line)+
-                  geom_vline(xintercept=median(res$dens),col=col.line
-                            ,linetype=2)+
-                  scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
-                  xlab("Dens during lifespan")+ylab("")+
-                  facet_grid(.~dens.lab)+
-                  p0
-            p3 <- ggplot(res,aes(cubs,stat(density)))+
-                  geom_histogram(binwidth=1,fill=col.hist)+
-                  geom_vline(xintercept=mean(res$cubs),col=col.line)+
-                  geom_vline(xintercept=median(res$cubs),col=col.line
-                            ,linetype=2)+
-                  scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
-                  xlab("Cubs during lifespan")+ylab("")+
-                  facet_grid(.~cubs.lab)+
-                  p0
-            p4 <- ggplot(res,aes(adults,stat(density)))+
-                  geom_histogram(binwidth=1,fill=col.hist)+
-                  geom_vline(xintercept=mean(res$adults),col=col.line)+
-                  geom_vline(xintercept=median(res$adults),col=col.line
-                            ,linetype=2)+
-                  scale_x_continuous(breaks=0:100,minor_breaks=NULL)+
-                  xlab("Survived cubs during lifespan")+ylab("")+
-                  facet_grid(.~adults.lab)+
-                  p0
-         }
-         if (isShiny)
-            removeNotification(id="fertility")
-      }
-     # ursa:::.elapsedTime("C")
-     # epoch <- as.numeric(names(lifestory))
+         removeNotification(id="fertility")
    }
    if (isShiny)
       removeModal()

@@ -1,7 +1,10 @@
-options(stringsAsFactors=FALSE)
 require(ggplot2)
 source("simulate.R")
 source("analyze.R")
 source("tools.R")
 isShiny <- ("shiny" %in% loadedNamespaces())
 init <- randomize()
+options(stringsAsFactors=FALSE
+       ,show.error.messages=TRUE
+       ,warn=ifelse(isShiny,1,10)
+       )

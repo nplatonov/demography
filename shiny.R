@@ -6,11 +6,11 @@ suppressMessages({
 source("./main.R")
 height <- c("600px","248px","165px")
 sliderWidth <- c("100%","125%")[2]
-ui <- dashboardPage(skin = "purple"
+ui <- dashboardPage(skin = "blue"
    ,dashboardHeader(title = "Polar Bear Demography",disable=TRUE,titleWidth = 350)
    ,dashboardSidebar(NULL
-      ,collapsed=TRUE
-      ,disable=!TRUE
+      ,collapsed=!TRUE
+      ,disable=TRUE
      # ,width = 350
       ,sidebarMenu(id="tabs"
         # ,HTML("<center>"),h4("Polar Bear Demography"),HTML("</center>")
@@ -23,9 +23,9 @@ ui <- dashboardPage(skin = "purple"
         # ,actionLink("itemize", "Itemize",icon=icon("angle-double-down"))
         # ,menuItem("Projection", tabName = "conclusion", icon = icon("table"))
          ,menuItem("Main", tabName = "main", icon = icon("table"))
-         ,menuItem("About", tabName = "about", icon = icon("info-circle"))
+         ,menuItem("About", tabName = "about2", icon = icon("info-circle"))
          ,menuItem("Source code", icon = icon("file-code-o"), 
-                   href = "https://github.com/nplatonov/ursa/")
+                   href = "https://github.com/nplatonov/demography/")
         # ,menuItem("Predefined", tabName = "predefined", icon = icon("align-justify")
         #          ,startExpanded = FALSE
         #    ,menuSubItem("Barents Sea", "BS", icon = NULL)
@@ -44,7 +44,7 @@ ui <- dashboardPage(skin = "purple"
    ,dashboardBody(id = "resetable"
      # ,tags$script(HTML("$('body').addClass('sidebar-mini');"))
       ,tabItems(
-         tabItem(tabName="about"
+         tabItem(tabName="about2"
             ,actionLink("gotomainTop", "Simulation",icon=icon("angle-double-left"))
             ,br()
             ,includeMarkdown("about.md")
@@ -81,8 +81,14 @@ ui <- dashboardPage(skin = "purple"
                      .simulate-button {
                        /* font-size: 1.3em; */
                         border: 0px solid green;
-                        background-color: #FFFFFF7F;
+                        background-color: #428BCAAF;
+                        color: #fff;
                         padding: 3px;
+                        border-radius: 0.3em !important;
+                     }
+                     .simulate-button:hover {
+                        color: #428BCA;
+                        background-color: #fff;
                      }
                      #menuhead {
                         width:600px;
@@ -101,38 +107,82 @@ ui <- dashboardPage(skin = "purple"
                   ,column(1
                     # ,img(src="http://www.sevin.ru/menues1/institute_logo.gif"
                     #     ,width=16)
-                     ,actionLink("about2",""
-                                ,icon=icon("info-circle"))
+                    # ,actionLink("about3",""
+                    #            ,icon=icon("info-circle"))
                   )
                   ,column(2
-                     ,actionLink("randomize1","Randomize scenario"
-                                ,icon=icon("angle-double-down"))
+                    # ,actionLink("randomize1","Randomize scenario"
+                    #            ,icon=icon("angle-double-down"))
                   )
                   ,column(2
-                     ,actionLink("simulate", "Simulate"
-                                ,icon=icon("angle-double-right")
-                                ,class="simulate-button"
-                                )
+                    # ,actionLink("simulate", "Simulate"
+                    #            ,icon=icon("angle-double-right")
+                    #            ,class="simulate-button"
+                    #            )
                   )
                   ,column(2
-                     ,actionLink("randomize2","Randomize simulation"
-                                ,icon=icon("angle-down"))
+                    # ,actionLink("randomize2","Randomize simulation"
+                    #            ,icon=icon("angle-down"))
                   )
                   ,column(2
-                     ,actionLink("sensitive","Improve"
-                                ,icon=icon("angle-right"))
+                    # ,actionLink("sensitive","Improve"
+                    #            ,icon=icon("angle-right"))
                   )
               # )
             )
-            ,fluidRow(NULL,class="emptymargin"
-               ,br()
-            )
+           # ,fluidRow(NULL,class="emptymargin"
+           #    ,br()
+           # )
             ,fluidRow(NULL
                ,tabBox(width=12,title = "",id = "tabset1", selected="Inputs"
-                  ,tabPanel("Input",value="Inputs"#,icon=icon("align-left")
+                  ,tabPanel(title="",value="Inputs",icon=icon("edit")
                      # width=4,
                      ,fluidRow(NULL
                         ,column(3
+                           ,plotOutput("plotPreAnalysis",height=height[3])
+                           ,fluidRow(NULL
+                              ,column(8
+                                 ,actionLink("simulate", "Simulate"
+                                            ,icon=icon("angle-double-right")
+                                            ,class="simulate-button"
+                                            )
+                              )
+                              ,column(2)
+                           )
+                          # ,uiOutput("uiPreAnalysis",height=height[2],inline=TRUE)
+                           ,fluidRow(NULL
+                              ,column(12,"Random seeds:")
+                           )
+                           ,fluidRow(NULL
+                              ,column(4
+                                 ,actionLink("randomize1","Scenario's")
+                                 ,numericInput("seed1"
+                                    ,"",min=100,max=999
+                                    ,value=init$seed1,step=1,width="80px"
+                                 )
+                              )
+                              ##~ ,column(2
+                                 ##~ ,textOutput("seed1")
+                              ##~ )
+                              ,column(4
+                                 ,actionLink("randomize2","Simulation's")
+                                 ,numericInput("seed2"
+                                    ,"",min=100,max=999
+                                    ,value=init$seed2,step=1,width="80px"
+                                 )
+                              )
+                              ,column(4
+                                 ,""
+                                 ,actionLink("randomize2","Perturbation's")
+                                 ,numericInput("seed3"
+                                    ,"",min=100,max=999
+                                    ,value=-1,step=1,width="80px"
+                                 )
+                              )
+                           )
+                          # ,br()
+                          # ,actionLink("analysis6", "Analyze"
+                          #              ,icon=icon("angle-double-right"))
                            ,sliderInput("max.age", "Max age, years"
                                        ,width=sliderWidth
                                        ,min=25, max=40, value=init$max.age,step=1
@@ -143,28 +193,18 @@ ui <- dashboardPage(skin = "purple"
                                        ,width=sliderWidth
                                        ,min=20, max=80,value=init$sexratio,step=0.1
                                        )
-                        )
-                        ,column(3
                            ,sliderInput("init.den", "Initial number of dens"
                                        ,width=sliderWidth
                                        ,min=10, max=200,value=init$init.den,step=1,sep=""
                                        )
-                        )
-                        ,column(3
                            ,sliderInput("fertility", "Age specific fertility"
                                        ,width=sliderWidth
                                        ,min=0, max=1,value=init$fertility,step=0.01,sep=""
                                        )
-                        )
-                     )
-                     ,fluidRow(NULL
-                        ,column(3
                            ,sliderInput("litter", "Litter size"
                                        ,width=sliderWidth
                                        ,min=1.0, max=2.5,value=init$litter,step=0.01
                                        )
-                        )
-                        ,column(3
                            ,sliderInput("indep.C1", "Broken yearling families"
                                        ,width=sliderWidth
                                        ,min=0, max=1
@@ -176,11 +216,55 @@ ui <- dashboardPage(skin = "purple"
                                        ,width=sliderWidth
                                        ,min=0,max=0.1,value=init$removal.rate,step=0.001
                                        )
-                        )
-                        ,column(3
                            ,sliderInput("removal.age","Age specific human-caused removal"
                                        ,width=sliderWidth
                                        ,min=0,max=1,value=init$removal.age,step=0.01
+                                       )
+                           ,fluidRow(NULL
+                              ,column(10,"Litter size proportions:")
+                           )
+                           ,fluidRow(NULL
+                              ,column(4,numericInput("C1", "1C",init$litterF[1]
+                                                    ,step=0.001,width="80px"))
+                              ,column(4,numericInput("C2", "2C",init$litterF[2]
+                                                    ,step=0.001,width="80px"))
+                              ,column(4,numericInput("C3", "3C",init$litterF[3]
+                                                    ,step=0.001,width="80px"))
+                              ,column(4)
+                           )
+                           ,textOutput("mort.C1.depend")
+                           ,textOutput("mort.C1.indep")
+                           ,textOutput("mort.C2.depend")
+                           ,textOutput("mort.C2.indep")
+                           ,br()
+                           ,sliderInput("pregnant", "Birth success"
+                                       ,width=sliderWidth
+                                       ,min=0.2, max=1.0,value=init$pregnant
+                                       ,step=0.01
+                                       )
+                        )
+                        ,column(3
+                           ,sliderInput("mortality.cub", "Dependent COY mortality"
+                                       ,width=sliderWidth
+                                       ,min=0.2, max=0.5,value=init$mortality.cub
+                                       ,step=0.01
+                                       )
+                           ,sliderInput("mortality.adult", "Adult mortality",
+                                       ,width=sliderWidth
+                                       ,min=0.01, max=0.15,value=init$mortality.adult
+                                       ,step=0.005
+                                       )
+                           ,sliderInput("k1d", "Mortality rate of dependent young"
+                                       ,width=sliderWidth
+                                       ,min=1,max=20,value=init$k1d,step=0.1
+                                       )
+                           ,sliderInput("k1i", "Mortality rate of independent youngs",
+                                       ,width=sliderWidth
+                                       ,min=1,max=20, value=init$k1i,step=0.1
+                                       )
+                           ,sliderInput("k2", "Mortality rate of aging"
+                                       ,width=sliderWidth
+                                       ,min=1, max=20, value=init$k2,step=0.1
                                        )
                         )
                      )
@@ -191,135 +275,18 @@ ui <- dashboardPage(skin = "purple"
                                       ##~ )
                         ##~ ),
                      ##~ ),
-                     ,fluidRow(NULL
-                        ,column(3
-                           ,fluidRow(NULL
-                              ,column(10,"Litter size proportions:")
-                           )
-                           ,fluidRow(NULL
-                              ,column(4,numericInput("C1", "1C",init$litterF[1],step=0.001,width="80px"))
-                              ,column(4,numericInput("C2", "2C",init$litterF[2],step=0.001,width="80px"))
-                              ,column(4,numericInput("C3", "3C",init$litterF[3],step=0.001,width="80px"))
-                              ,column(4)
-                           )
-                        )
-                        ,column(3
-                           ,textOutput("mort.C1.depend")
-                           ,textOutput("mort.C1.indep")
-                           ,textOutput("mort.C2.depend")
-                           ,textOutput("mort.C2.indep")
-                           ##~ ,sliderInput("mortality.yearling", "Yearling mortality",
-                                       ##~ min=0.1, max=0.5,value=mortality.yearling,
-                                       ##~ step=0.001
-                                      ##~ )
-                        )
-                        ,column(3
-                           ,sliderInput("pregnant", "Birth success"
-                                       ,width=sliderWidth
-                                       ,min=0.2, max=1.0,value=init$pregnant
-                                       ,step=0.01
-                                       )
-                        )
-                        ,column(3
-                           ,fluidRow(NULL
-                              ,textOutput("scenario")
-                             # ,actionLink("randomize1","Randomize scenario")
-                             # ,actionLink("randomize2","Randomize simulation")
-                           )
-                           ,fluidRow(NULL
-                             # ,actionLink("simulate", "Simulate"
-                             #            ,icon=icon("angle-double-right"))
-                           )
-                        )
-                     )
-                     ,fluidRow(NULL
-                        ,column(3
-                           ,sliderInput("mortality.cub", "Dependent COY mortality"
-                                       ,width=sliderWidth
-                                       ,min=0.2, max=0.5,value=init$mortality.cub
-                                       ,step=0.01
-                                       )
-                        )
-                        ,column(3
-                           ,sliderInput("mortality.adult", "Adult mortality",
-                                       ,width=sliderWidth
-                                       ,min=0.01, max=0.15,value=init$mortality.adult
-                                       ,step=0.005
-                                       )
-                        )
-                        ,column(3)
-                     )
-                    # ,"Parameters of demography tube:"
-                     ,fluidRow(NULL
-                        ,column(3
-                           ,sliderInput("k1d", "Mortality rate of dependent young"
-                                       ,width=sliderWidth
-                                       ,min=1,max=20,value=init$k1d,step=0.1
-                                       )
-                        )
-                        ,column(3
-                           ,sliderInput("k1i", "Mortality rate of independent youngs",
-                                       ,width=sliderWidth
-                                       ,min=1,max=20, value=init$k1i,step=0.1
-                                       )
-                        )
-                        ,column(3
-                           ,sliderInput("k2", "Mortality rate of aging"
-                                       ,width=sliderWidth
-                                       ,min=1, max=20, value=init$k2,step=0.1
-                                       )
-                        )
-                        ,column(3
-                           ,fluidRow(NULL
-                              ,column(12,"Random seed:")
-                           )
-                           ,fluidRow(NULL
-                              ,column(6
-                                 ,numericInput("seed1"
-                                    ,"Scenario's",min=100,max=999
-                                    ,value=init$seed1,step=1
-                                 )
-                              )
-                              ##~ ,column(2
-                                 ##~ ,textOutput("seed1")
-                              ##~ )
-                              ,column(6
-                                 ,numericInput("seed2"
-                                    ,"Simulation's"
-                                    ,min=100,max=999
-                                    ,value=init$seed2,step=1
-                                 )
-                              )
-                              ##~ ,column(2
-                                 ##~ ,textOutput("seed2")
-                              ##~ )
-                           )
-                        )
-                     )
-                     ,fluidRow(NULL
-                        ,column(4
-                          # ,checkboxInput("equilibrium"
-                          #              ,"Population is stable"
-                          #              ,value=equilibrium)
-                        )
-                        ,column(4
-                        )
-                        ,column(3
-                         # ,actionButton("simulate", "Simulate"
-                         #              ,icon=icon("angle-double-right"))
-                        )
-                        ,column(1
-                             # ,submitButton("Submit",shiny::icon("refresh"))
-                        )
-                     )
+
                   ) ## tabPanel
-                  ,tabPanel(title="Check",value="Check"#,icon=icon("eye")
+                  ,tabPanel(title="",value="Check",icon=icon("eye")
                     # width=4,
                     # status = "warning", solidHeader = !TRUE,
                     # collapsible = !TRUE,collapsed=!FALSE,
                     # height = "350px",
                      ,fluidRow(NULL
-                        ,column(2)
+                        ,column(2
+                             # ,actionLink("simulate3","Simulate"
+                             #            ,icon=icon("angle-double-right"))
+                        )
                         ,column(4,
                            plotOutput("curve.lin",height=height[2])
                         )
@@ -339,7 +306,7 @@ ui <- dashboardPage(skin = "purple"
                         ,column(2)
                      )
                   )
-                  ,tabPanel(title="Results",value="Results"#,icon=icon("signal")
+                  ,tabPanel(title="",value="Results",icon=icon("signal")
                      ,fluidRow(NULL
                         ,column(3
                            ,plotOutput("plotPopSize",height=height[2])
@@ -371,15 +338,33 @@ ui <- dashboardPage(skin = "purple"
                                  ,plotOutput("plotLitterProduction",height=height[2])
                               )
                            )
-                           ,fluidRow(NULL
-                           )
                         )
                      )
                   )
                   ##~ ,tabPanel("",value="Verbatim",icon=icon("terminal")
                      ##~ ,verbatimTextOutput("interim")
                   ##~ )
-                  ,tabPanel(title="Details",value="Interpretation" #,icon=icon("list")
+                  ,tabPanel(title="",value="Sensitive",icon=icon("cogs")
+                     ,fluidRow(NULL
+                        ,column(12
+                           ,fluidRow(NULL
+                              ,column(3
+                                 ,plotOutput("plotSensitivity1",height=height[2])
+                                 ,plotOutput("plotSensitivity2",height=height[2])
+                              )
+                              ,column(3
+                                 ,plotOutput("plotSensitivity3",height=height[2])
+                                 ,plotOutput("plotSensitivity4",height=height[2])
+                              )
+                              ,column(3
+                                 ,plotOutput("plotSensitivity5",height=height[2])
+                                 ,plotOutput("plotSensitivity6",height=height[2])
+                              )
+                           )
+                        )
+                     )
+                  )
+                  ,tabPanel(title="",value="Interpretation",icon=icon("table")
                      ,fluidRow(NULL 
                        # ,box(width=12
                            ,column(2)
@@ -393,10 +378,16 @@ ui <- dashboardPage(skin = "purple"
                        # )
                      )
                   )
-                  ,tabPanel(title="",value="Sensitive",icon=icon("list")
-                     ,fluidRow(NULL
-                     )
+                  ,tabPanel(title="",value="About",icon=icon("info-circle")
+                        ,includeMarkdown("about.md")
                   )
+                 # ,tabPanel(title="",value="about",icon=icon("circle-info")
+                     #,actionLink("gotomainTop", "Simulation",icon=icon("angle-double-left"))
+                     #,br()
+                 #    ,includeMarkdown("about.md")
+                     #,br()
+                     #,actionLink("gotomainBottom", "Simulation",icon=icon("angle-double-left"))
+                 # )
                ) ## tabBox
             ) ## fluidRow
          )
@@ -444,7 +435,7 @@ server <- function(input, session, output) {
    })
    output$mort.C2.indep <- renderText({
       m <- params()$indep.mortality
-      sprintf("Independent sub-adult mortality: %.3f",m[3])
+      sprintf("Independent sub-adult mortality: %.3f\n",m[3])
    })
    observeEvent(input$C1, {
      # message("*** 'C1' observe")
@@ -537,21 +528,26 @@ server <- function(input, session, output) {
           ,k2=k2
           )
    })
-   observeEvent(input$randomize1, {
+  # observeEvent(input$randomize1, {
+  #   # resetAnalysis()
+  #    updateTabsetPanel(session,"tabset1",selected="Inputs")
+  #   # updateTabItems(session,"tabs","tabInput")
+  # })
+  # observeEvent(input$randomize2, {
+  #    updateTabsetPanel(session,"tabset1",selected="Inputs")
+  #   # updateTabItems(session,"tabs","tabInput")
+  # })
+  # observeEvent(input$simulate, {
+  #   # message("*** Simulate (observe), goto results")
+  #   # updateTabItems(session,"tabs","main")
+  #    updateTabsetPanel(session,"tabset1",selected="Inputs")
+  #   # updateTabsetPanel(session,"tabset1",selected="Results")
+  # })
+   observeEvent(input$simulate3, {
       updateTabsetPanel(session,"tabset1",selected="Inputs")
-     # updateTabItems(session,"tabs","tabInput")
-   })
-   observeEvent(input$randomize2, {
-      updateTabsetPanel(session,"tabset1",selected="Inputs")
-     # updateTabItems(session,"tabs","tabInput")
-   })
-   observeEvent(input$simulate, {
-     # message("*** Simulate (observe), goto results")
-     # updateTabItems(session,"tabs","main")
-      updateTabsetPanel(session,"tabset1",selected="Inputs")
-      updateTabsetPanel(session,"tabset1",selected="Results")
    })
    result <- eventReactive(input$simulate,{
+  # result <- reactive({
       message("*** Simulate (reactive)")
      # updateTabsetPanel(session,"tabset1",selected="Results") ## NOT WORKING
       rv <- params()
@@ -577,6 +573,10 @@ server <- function(input, session, output) {
      # updateTabsetPanel(session,"restab",selected="Verbatim") ## NOT WORKING
       res
    })
+  # resultUpdate <- reactive({
+  #    message("*** result update ***")
+  #    result()
+  # })
    observeEvent(input$seed1, {
       message("*** seed1")
       res <- randomize(seed1=input$seed1,seed2=NA)
@@ -727,14 +727,42 @@ server <- function(input, session, output) {
    })
    analysis <- reactive({
       lifestory <- result()
-      updateTabsetPanel(session,"tabset1",selected="Results")
+     # updateTabsetPanel(session,"tabset1",selected="Results")
       ret <- analyze(lifestory)
-      showNotification(closeButton=FALSE,duration=2,"Figures will be updated soon"
+      showNotification(closeButton=FALSE,duration=2,"Rendering page..."
                       ,type="warning")
       ret
    })
+   sensitivity <- reactive({
+      message("*** sensitivity reactive ***")
+      lifestory <- result()
+      ret <- perturb(lifestory)
+      msg <- ifelse(all(!sapply(ret,inherits,"ggplot"))
+                   ,"Nothing to render","Rendering page...")
+      showNotification(closeButton=FALSE,duration=2,msg,type="warning")
+      ret
+   })
+   preAnalysis <- reactive({
+      message("*** Preanalysis")
+      lifestory <- result()
+      ret <- analyze(lifestory,options="popsize")
+      ret
+   })
+   resetAnalysis <- reactive({
+      message("*** Reset analysis")
+      analyze()
+   })
    output$plotAgeStructure <- renderPlot({
       analysis()$p6
+   })
+   output$uiPreAnalysis <- renderUI({
+      message("*** UI preAnalysis")
+      plotOutput("plotPreAnalysis")
+   })
+   output$plotPreAnalysis <- renderPlot({
+     # p <- params()
+      preAnalysis()$p5
+     # NULL  
    })
    output$plotPopSize <- renderPlot({
       analysis()$p5
@@ -772,6 +800,24 @@ server <- function(input, session, output) {
    })
    output$plotLitterProduction <- renderPlot({
       analysis()$p10
+   })
+   output$plotSensitivity1 <- renderPlot({
+      sensitivity()[[1]]
+   })
+   output$plotSensitivity2 <- renderPlot({
+      sensitivity()[[2]]
+   })
+   output$plotSensitivity3 <- renderPlot({
+      sensitivity()[[3]]
+   })
+   output$plotSensitivity4 <- renderPlot({
+      sensitivity()[[4]]
+   })
+   output$plotSensitivity5 <- renderPlot({
+      sensitivity()[[5]]
+   })
+   output$plotSensitivity6 <- renderPlot({
+      sensitivity()[[6]]
    })
 }
 if (.argv0.()=="shiny.R") {

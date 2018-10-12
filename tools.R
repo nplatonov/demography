@@ -384,6 +384,10 @@
    return(ret)
 }
 'randomize' <- function(seed1=NA,seed2=NA,verbose=FALSE) {
+   if (F & isShiny) {
+      seed1 <- 267
+      seed2 <- 818
+   }
    if (is.na(seed1)) {
       seed1 <- sample(100:999,1)
       seed2 <- NA
@@ -402,7 +406,7 @@
               ,mortality.adult=sample(seq(0.06,0.15,by=0.005),1)
               ,indep.fraction=c(0.001,sample(seq(0.05,0.75,by=0.05),1),0.999)
               ,fertility=sample(seq(0.1,1.0,by=0.01),1)
-              ,removal.rate=sample(seq(-0.05,0.05,by=0.001),1)
+              ,removal.rate=sample(seq(-0.15,0.05,by=0.001),1)
              # ,removal.rate=round(0.03*sample(removal.rate/max(removal.rate),1),3)
               ,removal.age=sample(seq(0.1,1.0,by=0.01),1)
               ,k1d=10
@@ -441,6 +445,12 @@
          next
       b <- new[[i]]
      # a <- old[[j]]
+      if (bname[i]=="litter") {
+         old[["litterF"]] <- litterFraction(b)
+      }
+      else if (bname[i]=="litterF") {
+         old[["litter"]] <- sum(seq_along(b)*b)
+      }
       if ((is.numeric(b))||(length(b)>1)||(is.language(b))) {
          if (is.numeric(b))
             old[[j]] <- b
@@ -477,16 +487,226 @@
    old
 }
 'growthRate' <- function(lifestory,verbose=!FALSE,...) {
-   if (length(list(...))) {
-      print("growthRate -> simulate")
+   if (T & length(list(...))>0) {
+     # print("growthRate -> simulate")
      # lifestory <- simulate(lifestory,verbose=FALSE,...)
       lifestory <- do.call("simulate",list(lifestory,quiet=TRUE,...))
    }
+   if (is.null(lifestory$output))
+      return(numeric())
   # print(analyze(lifestory)$p5)
    pop <- subset(lifestory$output,season==0)
    res <- aggregate(pop$id,by=list(epoch=pop$epoch),length)$x
+   if (length(res)<5)
+      return(numeric())
    res <- diff(res)/head(res,-1)
    if (verbose)
-      cat(sprintf("Growth rate = %.3f\u00B1%.3f\n",mean(res),sd(res)))
+      cat(sprintf("Growth rate = %+.3f\u00B1%.3f\n",mean(res),sd(res)))
    res
+}
+'perturb' <- function(lifestory) {
+   isShiny <- ("shiny" %in% loadedNamespaces())
+   if (isShiny) {
+      showModal(modalDialog(title = "Perturbation in progress","Please wait"
+                       ,size="s",easyClose = TRUE,footer = NULL))
+      on.exit(removeModal())
+   }
+  # str(lifestory$input)
+   prmList <- c('1'="mortality.adult",'2'="mortality.cub",'3'="max.age"
+               ,'4'="litter",'5'="pregnant",'6'="indep.fraction")
+   ret <- vector("list",length(prmList))
+   names(ret) <- prmList
+   cs <- colorScheme()
+   if (isShiny)
+      showNotification(closeButton=TRUE,"check reference"
+                      ,id="ref",duration=99)
+   g0 <- growthRate(lifestory,nochanged=TRUE)
+   if (isShiny)
+      removeNotification(id="ref")
+   if (!length(g0))
+      return(ret)
+  # set.seed(NULL)
+   gr0 <- mean(g0)
+   agr0 <- abs(gr0)
+   sgr0 <- sign(gr0)
+   for (p in .sample(prmList)) {
+      lab <- switch(p
+                   ,'mortality.adult'="Adult mortality"
+                   ,'mortality.cub'="COY mortality"
+                   ,'max.age'="Maximal age"
+                   ,'litter'="COY litter size"
+                   ,'pregnant'="Birth success"
+                   ,'indep.fraction'="Broken yearling families"
+                   ,p)
+      prm0 <- lifestory$input[[p]]
+      if (p %in% c("indep.fraction"))
+         prm0 <- prm0[2]
+      message(paste0(lab,": ",prm0))
+      sc <- switch(p
+                  ,'mortality.adult'=-0.05
+                  ,'mortality.cub'=-0.05
+                  ,'max.age'=+0.05
+                  ,'litter'=+0.05
+                  ,'pregnant'=+0.1
+                  ,'indep.fraction'=0.2
+                  ,0.1)
+      if (TRUE) {
+        # print(sc)
+         if (agr0>0.005) {
+            sc <- sc*round(100*agr0)^0.75
+         }
+         if (p %in% c("indep.fraction","pregnant"))
+            si <- c(-3,-2,-1,0,1,2,3)
+         else if (gr0>(+0.002))
+            si <- c(-3,-2,-1,0,1)*sign(sc)#*(-sgr0)
+         else if (gr0<(-0.002))
+            si <- c(-1,0,1,2,3)*sign(sc)#*(-sgr0)
+         else
+            si <- c(-2,-1,0,1,2)
+         if (p %in% c("pregnant","indep.fraction")) {
+            prm <- prm0+si*sc
+           # print(prm)
+            if (TRUE) {
+               indP <- prm>=0 & prm<=1
+               prm <- prm[indP]
+               si <- si[indP]
+            }
+            else if (FALSE) {
+               if (length(which(prm<0.05))>1)
+                  prm <- 0.05+prm-min(prm)
+               else if (length(which(prm>0.95))>1)
+                  prm <- 0.95-max(prm)+c(prm)
+            }
+            else {
+               indL <- which(prm<0.01)
+               if (length(indL)) {
+                  print(indL)
+               }
+            }
+           # print(prm)
+            s <- prm/prm0
+         }
+         else {
+            s <- (1+abs(sc))^si
+            prm <- prm0*s
+         }
+      }
+      else {
+         stop("damaged code")
+         si <- c(-2,-1,0,1,2)
+         s <- (1+abs(sc))^si
+        # s <- 1.1^si
+      }
+     # print(si)
+     # print(c(s=s))
+      if (isShiny)
+         showNotification(closeButton=TRUE,paste0(lab,"...")
+                         ,id=p,duration=99)
+      if (prm_validation <- TRUE) {
+         if (p %in% c("pregnant","indep.fraction")) {
+            prm[prm<0.01] <- 0.01
+            prm[prm>0.99] <- 0.99
+         }
+      }
+      indD <- which(!duplicated(prm))
+      prm <- prm[indD]
+      prmlab <- round(prm[indD],switch(p,'max.age'=0,3))
+      res2 <- NULL
+     # print(sprintf("%+.3f\u00B1%.3f",mean(g0),sd(g0)))
+      arglist <- list(lifestory,NA)
+      names(arglist) <- c("",p)
+      desc <- rep("",length(indD))
+      res <- data.frame(xlab=s[indD],prm=prmlab,desc="",mean=NA,sd=NA)
+      si <- si[indD]
+      for (i in seq(nrow(res))) {
+        # print(prmlab[i])
+         arglist[[p]] <- prm[i]
+        # str(arglist[-1])
+         g1 <- if (si[i]==0) g0 else do.call("growthRate",arglist)
+         if (!length(g1))
+            break
+        # g1 <- growthRate(lifestory,mortality.adult=res$x[i])
+        # res$mean[i] <- mean(g1)
+        # res$sd[i] <- sd(g1)
+        # desc <- paste0(res$x[i],"\n",sprintf("%.3f\u00B1%.3f",res$mean[i],res$sd[i]))
+         desc[i] <- sprintf("%+.3f\u00B1%.3f",mean(g1),sd(g1))
+         res$mean[i] <- mean(g1)
+         res$sd[i] <- sd(g1)
+         res2 <- rbind(res2,data.frame(prm=prmlab[i],value=g1
+                                      ,desc=desc[i]))
+      }
+     # if (p %in% c("pregnant","indep.fraction"))
+     #    print(res)
+      if (isShiny)
+         removeNotification(id=p)
+      if (is.null(res2))
+         next
+      if (length(desc)==length(unique(desc)))
+         res$desc <- factor(desc,levels=desc[order(prm)],ordered=TRUE)
+      else {
+         desc2 <- paste0(prmlab,"\n",desc)
+         res$desc <- factor(desc2,levels=desc2[order(prm)],ordered=TRUE)
+      }
+      res$xlab <- factor(paste0(prmlab,"\n",desc))
+      if (length(desc)==length(unique(desc))) {
+         res2$desc <- factor(res2$desc,levels=desc[order(prm)]
+                            ,ordered=TRUE)
+      }
+      else {
+         res2$desc <- factor(paste0(res2$prm,"\n",res2$desc)
+                            ,levels=paste0(prmlab,"\n",desc)
+                            ,ordered=TRUE)
+      }
+      names(desc) <- prmlab
+      if (!FALSE)
+         s1 <- ggplot(res2,aes(prm,value))+
+               geom_violin(fill=cs$hist,colour=cs$base)+
+               geom_point(data=res,aes(prm,mean))+
+               xlab(lab)+ylab("Growth Rate")+
+               facet_grid(prm~.,scales="free",labeller=labeller(prm=desc))+
+               scale_x_continuous(breaks=prmlab)+
+               coord_flip()+
+               cs$p0+
+               NULL
+      else if (!FALSE)
+         s1 <- ggplot(res2,aes(prm,value))+
+               geom_violin(fill=cs$hist,colour=cs$base)+
+               geom_point(data=res,aes(prm,mean))+
+               xlab(lab)+ylab("Growth Rate")+
+               facet_grid(.~desc,scales="free")+
+               scale_x_continuous(breaks=prmlab)+
+               cs$p0+
+               NULL
+      else {
+         res2$xlab <- factor(with(res2,paste0(prm,"\n",desc)))
+         s1 <- ggplot(res2,aes(xlab,value))+
+               geom_violin(fill=cs$hist,colour=cs$base)+
+               xlab(lab)+ylab("Growth Rate")+
+               geom_point(data=res,aes(xlab,mean))+
+              # geom_line(data=res,aes(xlab,mean))+
+              # facet_grid(.~desc,scales="free")+
+              # scale_x_discrete(breaks=desc)+
+               cs$p0+
+               NULL
+      }
+      ret[[p]] <- s1
+     # break
+   }
+   ret
+}
+'colorScheme' <- function() {
+   col.base <- c(green="#3C8D8C",blue="#428BCA",purpur="#605CA8"
+                ,orange="#F39C12")[2]
+   col.bg <- paste0(col.base,"40")
+   col.hist <- paste0(col.base,"60")
+   col.line <- paste0(col.base,"80")
+   col.strip <- paste0(col.base,"60")
+   p0 <- theme_grey()+
+         theme(panel.background=element_rect(fill=col.bg))+
+         theme(strip.background=element_rect(fill=col.strip))+#,colour="red"))
+         theme(legend.margin=margin(t=-1,b=0,unit='char'))+
+         theme(strip.text.y=element_text(angle=0,hjust=0.5,vjust=0.5))
+        # theme(legend.key.size=size(1,unit="char"))
+   list(base=col.base,bg=col.bg,hist=col.hist,line=col.line,strip=col.strip
+       ,p0=p0)
 }
