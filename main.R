@@ -1,7 +1,7 @@
 require(ggplot2)
 source("simulate.R")
 source("analyze.R")
-source("tools.R")
+source("resources.R")
 isShiny <- ("shiny" %in% loadedNamespaces())
 init <- randomize()
 options(stringsAsFactors=FALSE

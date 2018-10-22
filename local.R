@@ -21,7 +21,23 @@ invisible({
       lifestory <- if (toUpdate) readRDS("lifestory.rds") else NULL
       if (TRUE) {
          if (!toUpdate) {
-            lifestory <- simulate(seed1=NA,seed2=NA)
+            if (TRUE) {
+               curv <- simulate(seed1=795,seed2=130,check=TRUE)
+               saveRDS(curv,"checkInputs.rds")
+               if (TRUE) {
+                  ind <- which(sapply(curv,inherits,"ggplot"))
+                  str(curv[-ind])
+                  print(names(curv[ind]))
+                  if (TRUE) {
+                     pdf(width=3.6,height=2.4)
+                     for (i in ind) {
+                        print(curv[[i]])
+                     }
+                  }
+               }
+               q()
+            }
+            lifestory <- simulate(seed1=795,seed2=130)
             saveRDS(lifestory,"lifestory.rds")
          }
          if (TRUE) {

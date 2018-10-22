@@ -486,47 +486,25 @@ server <- function(input, session, output) {
    })
    params <- reactive({
       message("*** reactive *** ")
-      max.age <- input$max.age
-      k1d <- input$k1d
-      k1i <- input$k1i
-      k2 <- input$k2
-      mortality.cub <- input$mortality.cub
-      mortality.adult <- input$mortality.adult
-      ## isolate({}) doubt; so many dependencies
-      mortality <- mortalityTube(max.age=max.age,mortality.cub=mortality.cub
-                                ,mortality.adult=mortality.adult
-                                ,k1d=k1d,k1i=k1i,k2=k2)
-      tube <- mortalityTubePlot(mortality)
-      indep.mortality <- mortality$indep
-      mortality <- mortality$depend
-      age <- seq(max.age)
-      init.den <- input$init.den
-      indep.fraction <- init$indep.fraction
-      indep.fraction[2] <- input$indep.C1
-      list(mortality=mortality
-          ,indep.mortality=indep.mortality
-          ,mortality.cub=input$mortality.cub
-          ,mortality.adult=input$mortality.adult
-          ,age=age
-          ,tube.lin=tube
-          ,tube.log=tube+scale_y_log10()
-          ,tube.fert=fertilityCurve(age=age,u=input$fertility,plot=TRUE)
-          ,tube.removal=removalCurve(age=age,u=input$removal.age,plot=TRUE)
-          ,init.den=init.den
-          ,litter=input$litter
-          ,indep.fraction=indep.fraction
-          ,max.age=input$max.age
-          ,pregnant=input$pregnant
-          ,sexratio=input$sexratio
-          ,seed1=input$seed1
-          ,seed2=input$seed2
-          ,fertility=input$fertility
-          ,removal.rate=input$removal.rate
-          ,removal.age=input$removal.age
-          ,k1d=k1d
-          ,k1i=k1i
-          ,k2=k2
-          )
+      ret <- curveInputs(indep.mortality=input$indep.mortality
+                        ,mortality.cub=input$mortality.cub
+                        ,mortality.adult=input$mortality.adult
+                        ,init.den=input$init.den
+                        ,litter=input$litter
+                        ,indep.C1=input$indep.C1
+                        ,max.age=input$max.age
+                        ,pregnant=input$pregnant
+                        ,sexratio=input$sexratio
+                        ,seed1=input$seed1
+                        ,seed2=input$seed2
+                        ,fertility=input$fertility
+                        ,removal.rate=input$removal.rate
+                        ,removal.age=input$removal.age
+                        ,k1d=input$k1d
+                        ,k1i=input$k1i
+                        ,k2=input$k2
+                        )
+      ret
    })
   # observeEvent(input$randomize1, {
   #   # resetAnalysis()

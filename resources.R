@@ -225,7 +225,7 @@
      # scale_colour_manual(values=c("indianred2","seagreen3","sienna3"))+
       scale_colour_hue()+
       guides(colour=guide_legend(title=""))+
-      theme(legend.pos=c(0.25,0.85))+
+      theme(legend.pos=c(0.35,0.85))+
       theme(legend.background=element_rect(fill="transparent"))+
       theme(legend.key=element_rect(fill="transparent",colour="transparent"))+
      # theme(legend.box.background=element_rect(fill="transparent"))+
@@ -385,8 +385,8 @@
 }
 'randomize' <- function(seed1=NA,seed2=NA,verbose=FALSE) {
    if (F & isShiny) {
-      seed1 <- 267
-      seed2 <- 818
+      seed1 <- 275 ## 267
+     # seed2 <- 818 ## 818
    }
    if (is.na(seed1)) {
       seed1 <- sample(100:999,1)
@@ -709,4 +709,43 @@
         # theme(legend.key.size=size(1,unit="char"))
    list(base=col.base,bg=col.bg,hist=col.hist,line=col.line,strip=col.strip
        ,p0=p0)
+}
+'curveInputs' <- function(indep.mortality,mortality.cub,mortality.adult,init.den
+                         ,litter,indep.C1,max.age,pregnant,sexratio,seed1
+                         ,seed2,fertility,removal.rate,removal.age
+                         ,k1d,k1i,k2) {
+   mortality <- mortalityTube(max.age=max.age,mortality.cub=mortality.cub
+                             ,mortality.adult=mortality.adult
+                             ,k1d=k1d,k1i=k1i,k2=k2)
+   tube <- mortalityTubePlot(mortality)
+   indep.mortality <- mortality$indep
+   mortality <- mortality$depend
+   age <- seq(max.age)
+   indep.fraction <- init$indep.fraction
+   indep.fraction[2] <- indep.C1
+   ret <- list(mortality=mortality
+              ,indep.mortality=indep.mortality
+              ,mortality.cub=mortality.cub
+              ,mortality.adult=mortality.adult
+              ,age=age
+              ,tube.lin=tube
+              ,tube.log=tube+scale_y_log10()
+              ,tube.fert=fertilityCurve(age=age,u=fertility,plot=TRUE)
+              ,tube.removal=removalCurve(age=age,u=removal.age,plot=TRUE)
+              ,init.den=init.den
+              ,litter=litter
+              ,indep.fraction=indep.fraction
+              ,max.age=max.age
+              ,pregnant=pregnant
+              ,sexratio=sexratio
+              ,seed1=seed1
+              ,seed2=seed2
+              ,fertility=fertility
+              ,removal.rate=removal.rate
+              ,removal.age=removal.age
+              ,k1d=k1d
+              ,k1i=k1i
+              ,k2=k2
+              )
+   ret
 }

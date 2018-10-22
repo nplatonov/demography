@@ -4,7 +4,7 @@
                       ,indep.fraction=NA,fertility=NA
                       ,removal.rate=NA,removal.age=NA
                       ,k1d=NA,k1i=NA,k2=NA
-                      ,seed1=NA,seed2=NA,quiet=FALSE,...) {
+                      ,seed1=NA,seed2=NA,quiet=FALSE,check=FALSE,...) {
    isShiny <- ("shiny" %in% loadedNamespaces())
    if ((isShiny)&&(!quiet)) {
       showModal(modalDialog(title = "Simulation in progress","Please wait"
@@ -40,7 +40,29 @@
   # str(init)
    for (pass in names(init))
       assign(pass,init[[pass]])
+  # str(litterF)
    rm(litterF) ## NOT IMPLEMENTED
+   if (check) {
+      curv <- curveInputs(indep.mortality=indep.mortality
+                         ,mortality.cub=mortality.cub
+                         ,mortality.adult=mortality.adult
+                         ,init.den=init.den
+                         ,litter=litter
+                         ,indep.C1=indep.fraction[2]
+                         ,max.age=max.age
+                         ,pregnant=pregnant
+                         ,sexratio=sexratio
+                         ,seed1=seed1
+                         ,seed2=seed2
+                         ,fertility=fertility
+                         ,removal.rate=removal.rate
+                         ,removal.age=removal.age
+                         ,k1d=k1d
+                         ,k1i=k1i
+                         ,k2=k2
+                         )
+      return(curv)
+   }
    max.age <- as.integer(round(max.age))
    nepoch <- ifelse(update,15L,max.age+50L)
    input <- list(max.age=max.age,litter=litter,sex=sexratio
