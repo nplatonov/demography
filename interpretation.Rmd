@@ -9,6 +9,8 @@ link-citations: true
 csl: https://nplatonov.github.io/platt2.csl
 output:
    bookdown::html_document2:
+      lib_dir: ./resources
+      self_containded: false
       number_sections: no
    bookdown::pdf_document2:
       toc: false
@@ -30,7 +32,7 @@ if (kind==0) {
 knitr::opts_chunk$set(fig.align="center",fig.width=6,fig.height=4.8)
 ```
 
-```{r eval=FALSE,include=FALSE}
+```{r eval=!FALSE,include=!FALSE}
 out_type <- knitr::opts_knit$get("rmarkdown.pandoc.to")
 str(knitr::opts_knit$get())
 print(out_type)
@@ -47,8 +49,15 @@ In scenario, maximal age is **`r input$max.age`** years.
 
 
 ```{r p3, echo=FALSE, fig.cap="This figure has a caption."}
-if (!is.null(res$p3))
-   print(res$p3)
+if (!is.null(res$p3)) {
+   if (out_type %in% c("html4","latex"))
+      print(res$p3)
+   else if (out_type=="html") {
+      print("HTML PLOTLY")
+     # widgetframe::frameWidget(ggplotly(res$p3),height=590,width=790)
+      print(ggplotly(res$p3))
+   }
+}
 ```
 
 `r if ((kind==2)&&(!is.null(res$p3))) "Histogram is presented on Fig.\\@ref(fig:p3)."`

@@ -1,4 +1,5 @@
-require(ggplot2)
+# require(ggplot2)
+suppressMessages(require(plotly))
 source("simulate.R")
 source("analyze.R")
 source("resources.R")

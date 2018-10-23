@@ -15,10 +15,10 @@ invisible({
       stop()
    }
    if (TRUE) {
-      if ((!FALSE)&&(file.exists("lifestory.rds")))
-         file.remove("lifestory.rds")
-      toUpdate <- file.exists("lifestory.rds")
-      lifestory <- if (toUpdate) readRDS("lifestory.rds") else NULL
+      if ((FALSE)&&(file.exists("simulation.rds")))
+         file.remove("simulation.rds")
+      toUpdate <- F & file.exists("simulation.rds")
+      lifestory <- if (toUpdate) readRDS("simulation.rds") else NULL
       if (TRUE) {
          if (!toUpdate) {
             if (TRUE) {
@@ -38,7 +38,7 @@ invisible({
                q()
             }
             lifestory <- simulate(seed1=795,seed2=130)
-            saveRDS(lifestory,"lifestory.rds")
+            saveRDS(lifestory,"simulation.rds")
          }
          if (TRUE) {
             pdf(width=3.6,height=2.4)
@@ -95,7 +95,8 @@ invisible({
      # print(nrow(LS))
      # print(lifestory[lifestory$id=="gdq9gs2e",])
      # ursa:::.elapsedTime("============== analysis start ================")
-      res <- analyze(lifestory,options="none")
+      res <- analyze(lifestory,options="all")
+      saveRDS(res,"analysis.rds")
      # ursa:::.elapsedTime("============== analysis finish ================")
       if (!FALSE) {
          pdf(width=3.6,height=2.4)

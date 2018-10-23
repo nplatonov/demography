@@ -139,7 +139,8 @@ ui <- dashboardPage(skin = "blue"
                      # width=4,
                      ,fluidRow(NULL
                         ,column(3
-                           ,plotOutput("plotPreAnalysis",height=height[3])
+                           ,plotOutput("plotPreAnalysis",height=height[2])
+                          # ,uiOutput("uiPreAnalysis",height=height[2],inline=TRUE)
                            ,fluidRow(NULL
                               ,column(8
                                  ,actionLink("simulate", "Simulate"
@@ -149,7 +150,6 @@ ui <- dashboardPage(skin = "blue"
                               )
                               ,column(2)
                            )
-                          # ,uiOutput("uiPreAnalysis",height=height[2],inline=TRUE)
                            ,fluidRow(NULL
                               ,column(12,"Random seeds:")
                            )
@@ -288,20 +288,20 @@ ui <- dashboardPage(skin = "blue"
                              #            ,icon=icon("angle-double-right"))
                         )
                         ,column(4,
-                           plotOutput("curve.lin",height=height[2])
+                           plotlyOutput("curve.lin",height=height[2])
                         )
                         ,column(4,
-                           plotOutput("curve.log",height=height[2])
+                           plotlyOutput("curve.log",height=height[2])
                         )
                         ,column(2)
                      )
                      ,fluidRow(NULL
                         ,column(2)
                         ,column(4
-                           ,plotOutput("curve.fert",height=height[2])
+                           ,plotlyOutput("curve.fert",height=height[2])
                         )
                         ,column(4
-                           ,plotOutput("curve.removal",height=height[2])
+                           ,plotlyOutput("curve.removal",height=height[2])
                         )
                         ,column(2)
                      )
@@ -364,7 +364,7 @@ ui <- dashboardPage(skin = "blue"
                         )
                      )
                   )
-                  ,tabPanel(title="",value="Interpretation",icon=icon("table")
+                  ,tabPanel(title="",value="Interpretation",icon=icon("desktop")
                      ,fluidRow(NULL 
                        # ,box(width=12
                            ,column(2)
@@ -690,18 +690,18 @@ server <- function(input, session, output) {
       rv <- params()
       length(rv$mortality)
    })
-   output$curve.lin <- renderPlot({
+   output$curve.lin <- renderPlotly({
      # with(params(),plot(age,mortality,type="b"))
-      params()$tube.lin
+      ggplotly(params()$tube.lin+theme(legend.position="none"))
    })
-   output$curve.log <- renderPlot({
-      params()$tube.log
+   output$curve.log <- renderPlotly({
+      ggplotly(params()$tube.log+theme(legend.position="none"))
    })
-   output$curve.fert <- renderPlot({
-      params()$tube.fert
+   output$curve.fert <- renderPlotly({
+      ggplotly(params()$tube.fert)
    })
-   output$curve.removal <- renderPlot({
-      params()$tube.removal
+   output$curve.removal <- renderPlotly({
+      ggplotly(params()$tube.removal)
    })
    analysis <- reactive({
       lifestory <- result()
@@ -735,15 +735,21 @@ server <- function(input, session, output) {
    })
    output$uiPreAnalysis <- renderUI({
       message("*** UI preAnalysis")
-      plotOutput("plotPreAnalysis")
+      if (req(input$simulate)>0)
+         return(plotOutput("plotPreAnalysis"))
+      textOutput("printReminder")
+   })
+   output$printReminder <- renderText({
+      "Run simulation before (click 'Simulate')"
    })
    output$plotPreAnalysis <- renderPlot({
-     # p <- params()
       preAnalysis()$p5
+     # ggplotly(preAnalysis()$p5+theme(legend.position="none"))
      # NULL  
    })
    output$plotPopSize <- renderPlot({
       analysis()$p5
+     # ggplotly(analysis()$p5+theme(legend.position="none"))
    })
    output$plotInterbirth <- renderPlot({
       analysis()$p1
