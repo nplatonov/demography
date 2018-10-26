@@ -101,7 +101,8 @@
          p7 <- ggplot(res,aes(epoch,value,colour=cubs))+geom_line()
          p8 <- ggplot(res,aes(cubs,value))+
                geom_violin(fill=cs$hist,colour=cs$base)+
-               xlab("Age-specific litter Size")+ylab("Proportion")
+               xlab("Age-specific litter size")+ylab("Proportion")+
+               facet_grid(.~age)+p0
          p10 <- ggplot(res3,aes(age,value))+
                geom_violin(fill=cs$hist,colour=cs$base)+
                xlab("Age")+ylab("Litter Production")+

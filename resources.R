@@ -406,7 +406,7 @@
               ,mortality.adult=sample(seq(0.06,0.15,by=0.005),1)
               ,indep.fraction=c(0.001,sample(seq(0.05,0.75,by=0.05),1),0.999)
               ,fertility=sample(seq(0.1,1.0,by=0.01),1)
-              ,removal.rate=sample(seq(-0.15,0.05,by=0.001),1)
+              ,removal.rate=sample(seq(-100.15,0.05,by=0.001),1)
              # ,removal.rate=round(0.03*sample(removal.rate/max(removal.rate),1),3)
               ,removal.age=sample(seq(0.1,1.0,by=0.01),1)
               ,k1d=10

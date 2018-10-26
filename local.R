@@ -14,7 +14,7 @@ invisible({
       })
       stop()
    }
-   if (TRUE) {
+   if (!TRUE) {
       if ((FALSE)&&(file.exists("simulation.rds")))
          file.remove("simulation.rds")
       toUpdate <- F & file.exists("simulation.rds")
@@ -35,10 +35,11 @@ invisible({
                      }
                   }
                }
-               q()
+              # q()
             }
             lifestory <- simulate(seed1=795,seed2=130)
             saveRDS(lifestory,"simulation.rds")
+            q()
          }
          if (TRUE) {
             pdf(width=3.6,height=2.4)
@@ -90,7 +91,7 @@ invisible({
          stop("Что дальше?")
    }
    else {
-      lifestory <- readRDS("lifestory.rds")
+      lifestory <- readRDS("simulation.rds")
      # LS <- lifestory[lifestory$epoch==max(lifestory$epoch) & lifestory$season==0,]
      # print(nrow(LS))
      # print(lifestory[lifestory$id=="gdq9gs2e",])
@@ -109,7 +110,7 @@ invisible({
             if (!is.null(p5))
                print(p5)
             if (!is.null(p8))
-               print(p8+facet_grid(.~age)+p0)
+               print(p8) #+facet_grid(.~age)+p0)
             if (!is.null(p10))
                print(p10)
             if (!is.null(p1))

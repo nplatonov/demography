@@ -7,7 +7,7 @@ source("./main.R")
 height <- c("600px","248px","165px")
 sliderWidth <- c("100%","125%")[2]
 ui <- dashboardPage(skin = "blue"
-   ,dashboardHeader(title = "Polar Bear Demography",disable=TRUE,titleWidth = 350)
+   ,dashboardHeader(title = "Polar Bear Demography - shiny",disable=TRUE,titleWidth = 350)
    ,dashboardSidebar(NULL
       ,collapsed=!TRUE
       ,disable=TRUE
@@ -139,8 +139,8 @@ ui <- dashboardPage(skin = "blue"
                      # width=4,
                      ,fluidRow(NULL
                         ,column(3
-                           ,plotOutput("plotPreAnalysis",height=height[2])
-                          # ,uiOutput("uiPreAnalysis",height=height[2],inline=TRUE)
+                          # ,plotOutput("plotPreAnalysis",height=height[2])
+                           ,uiOutput("uiPreAnalysis",height=height[2])#,inline=TRUE)
                            ,fluidRow(NULL
                               ,column(8
                                  ,actionLink("simulate", "Simulate"
@@ -288,20 +288,20 @@ ui <- dashboardPage(skin = "blue"
                              #            ,icon=icon("angle-double-right"))
                         )
                         ,column(4,
-                           plotlyOutput("curve.lin",height=height[2])
+                           plotOutput("curve.lin",height=height[2])
                         )
                         ,column(4,
-                           plotlyOutput("curve.log",height=height[2])
+                           plotOutput("curve.log",height=height[2])
                         )
                         ,column(2)
                      )
                      ,fluidRow(NULL
                         ,column(2)
                         ,column(4
-                           ,plotlyOutput("curve.fert",height=height[2])
+                           ,plotOutput("curve.fert",height=height[2])
                         )
                         ,column(4
-                           ,plotlyOutput("curve.removal",height=height[2])
+                           ,plotOutput("curve.removal",height=height[2])
                         )
                         ,column(2)
                      )
@@ -626,7 +626,7 @@ server <- function(input, session, output) {
          HTML(a2)
       }
       else {
-         a1 <- tempfile()
+         a1 <- "./res1.html" # "./res1.html" #tempfile()
          rmarkdown::render('interpretation.Rmd'
                           ,output_format=rmarkdown::html_fragment()
                          # ,output_format=rmarkdown::html_vignette(css=NULL)
@@ -690,18 +690,21 @@ server <- function(input, session, output) {
       rv <- params()
       length(rv$mortality)
    })
-   output$curve.lin <- renderPlotly({
-     # with(params(),plot(age,mortality,type="b"))
-      ggplotly(params()$tube.lin+theme(legend.position="none"))
+   output$curve.lin <- renderPlot({
+      params()$tube.lin
+     # ggplotly(params()$tube.lin+theme(legend.position="none"))
    })
-   output$curve.log <- renderPlotly({
-      ggplotly(params()$tube.log+theme(legend.position="none"))
+   output$curve.log <- renderPlot({
+      params()$tube.log
+     # ggplotly(params()$tube.log+theme(legend.position="none"))
    })
-   output$curve.fert <- renderPlotly({
-      ggplotly(params()$tube.fert)
+   output$curve.fert <- renderPlot({
+      params()$tube.fert
+     # ggplotly(params()$tube.fert)
    })
-   output$curve.removal <- renderPlotly({
-      ggplotly(params()$tube.removal)
+   output$curve.removal <- renderPlot({
+      params()$tube.removal
+     # ggplotly(params()$tube.removal)
    })
    analysis <- reactive({
       lifestory <- result()
@@ -735,12 +738,12 @@ server <- function(input, session, output) {
    })
    output$uiPreAnalysis <- renderUI({
       message("*** UI preAnalysis")
-      if (req(input$simulate)>0)
-         return(plotOutput("plotPreAnalysis"))
-      textOutput("printReminder")
+      if (!input$simulate)
+            return(textOutput("printReminder"))
+      plotOutput("plotPreAnalysis",height=height[2])
    })
-   output$printReminder <- renderText({
-      "Run simulation before (click 'Simulate')"
+   output$printReminder <- renderPrint({
+      cat("There is no data for visulation. Click 'Simulate'.")
    })
    output$plotPreAnalysis <- renderPlot({
       preAnalysis()$p5
@@ -773,11 +776,11 @@ server <- function(input, session, output) {
    })
    output$plotLitterSize <- renderPlot({
       res <- analysis()
-      res$p8+facet_grid(.~age)+res$p0
+      res$p8 #+facet_grid(.~age)+res$p0
    })
    output$plotP8b <- renderPlot({
       res <- analysis()
-      res$p8+facet_grid(age~.)+res$p0
+      res$p8 #+facet_grid(age~.)+res$p0
    })
    output$plotSurvival <- renderPlot({
       analysis()$p9
