@@ -201,9 +201,9 @@ ui <- dashboardPage(skin = "blue"
                                        ,width=sliderWidth
                                        ,min=0, max=1,value=init$fertility,step=0.01,sep=""
                                        )
-                           ,sliderInput("litter", "Litter size"
+                           ,sliderInput("removal.age","Age specific human-caused removal"
                                        ,width=sliderWidth
-                                       ,min=1.0, max=2.5,value=init$litter,step=0.01
+                                       ,min=0,max=1,value=init$removal.age,step=0.01
                                        )
                            ,sliderInput("indep.C1", "Broken yearling families"
                                        ,width=sliderWidth
@@ -216,9 +216,9 @@ ui <- dashboardPage(skin = "blue"
                                        ,width=sliderWidth
                                        ,min=0,max=0.1,value=init$removal.rate,step=0.001
                                        )
-                           ,sliderInput("removal.age","Age specific human-caused removal"
+                           ,sliderInput("litter", "Litter size"
                                        ,width=sliderWidth
-                                       ,min=0,max=1,value=init$removal.age,step=0.01
+                                       ,min=1.0, max=2.5,value=init$litter,step=0.01
                                        )
                            ,fluidRow(NULL
                               ,column(10,"Litter size proportions:")
