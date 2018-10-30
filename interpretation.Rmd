@@ -6,8 +6,8 @@ pagetitle: Include Markdown
 author: Nikita Platonov
 bibliography: ./demography.bib
 link-citations: true
-csl2: https://nplatonov.github.io/platt2.csl
-csl: C:/platt/R/style/platt3.csl
+csl: https://nplatonov.github.io/platt3.csl
+csl2: C:/platt/R/style/platt3.csl
 output:
    bookdown::html_document2:
       lib_dir: ./resources
@@ -42,7 +42,7 @@ knitr::opts_chunk$set(fig.align="center",fig.width=6,fig.height=4.8
                      )
 ```
 
-```{r eval=!FALSE,include=!FALSE}
+```{r eval=TRUE,include=FALSE}
 filetype <- knitr::opts_knit$get("rmarkdown.pandoc.to")
 ```
 ---- 
@@ -56,7 +56,7 @@ This is a simulator of polar bear lifespan based on certain demographical parame
 In scenario, maximal age is **`r input$max.age`** years.
 
 
-```{r p3, echo=FALSE, fig.cap="This figure has a caption."}
+```{r p3, echo=FALSE, fig.cap="Distribuion of number of cubs during lifespan"}
 if (!is.null(res$p3)) {
    if (filetype %in% c("html4","latex","html")) {
       print(res$p3)
@@ -83,7 +83,7 @@ if (!is.null(res$p3)) {
 }
 ```
 
-`r if ((kind==2)&&(!is.null(res$p3))) "Histogram is presented on Fig.\\@ref(fig:p3)."`
+`r if ((kind==2)&&(!is.null(res$p3))) "Histogram of cubs during lefespan per female is presented on Fig.\\@ref(fig:p3)."`
 
 Life expectancy in the wild can be as long as 30 years. In captivity, life expectancy can reach 40 years.
 
@@ -92,8 +92,8 @@ Females reach maturity at 4 to 6 years. Polar bears mate from late March to late
 
 Polar bears in the wild can live to be 30 years of age, but this is rare. Most adults die before they reach 25 years.
 
-+ Every year some bears are destroyed as "problem bears" around Churchill. (J30.63.w2, [@Lunn_1985])
++ Every year some bears are destroyed as "problem bears" around Churchill [@Lunn_1985].
 
-+ A female and her cubs died when their den collapsed. (J343.44.w1, @Clarkson_1991 wrote about it)
++ @Clarkson_1991 pointed on the case when a female and her cubs died when their den collapsed.
 
 ---
