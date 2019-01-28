@@ -60,7 +60,7 @@ ui <- dashboardPage(skin = "blue"
                   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
                   <style>
                      .main-header .logo {
-                        font-family: "Roboto","Raleway", Times, "T   imes New Roman", serif;
+                        font-family: "Roboto","Raleway", Times, "Times New Roman", serif;
                        /* font-weight: bold; */
                         font-size: 18px;
                      }
