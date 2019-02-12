@@ -5,7 +5,7 @@
 *.pdf
 *.link
 *.docx
-*.xlsx
+review.xlsx
 _*.*
 *.txt
 *.rds

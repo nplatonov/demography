@@ -2,7 +2,7 @@
 params:
   prm: NULL
   kind: 0
-pagetitle: Include Markdown
+pagetitle: Polar Bear Demography
 author: Nikita Platonov
 bibliography: ./demography.bib
 link-citations: true
@@ -10,6 +10,9 @@ csl: https://nplatonov.github.io/platt3.csl
 csl2: C:/platt/R/style/platt3.csl
 output:
    bookdown::html_document2:
+      base_format: rmarkdown::html_vignette
+      css: https://nplatonov.github.io/html_vignette.css
+      css2: C:/platt/R/style/html_vignette.css
       lib_dir: ./resources
       self_containded: false
       number_sections: no
@@ -21,7 +24,8 @@ output:
    html_fragment: #
 ---
 
-```{r setup,include=FALSE,}
+```{r setup,include=FALSE}
+# require(ggplot2)
 res <- params$prm
 kind <- params$kind
 if (kind==0) {
@@ -60,7 +64,8 @@ In scenario, maximal age is **`r input$max.age`** years.
 if (!is.null(res$p3)) {
    if (filetype %in% c("html4","latex","html")) {
       print(res$p3)
-      }
+     # print(class(res$p3))
+   }
    else if (filetype %in% c("zhtml4","zhtml")) {
       print("HTML PLOTLY")
       require(widgetframe)

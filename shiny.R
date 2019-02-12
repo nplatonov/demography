@@ -2,12 +2,79 @@ suppressMessages({
    require(shiny)
    require(shinyjs)
    require(shinydashboard)
+   require(leaflet)
 })
 source("./main.R")
 height <- c("600px","248px","165px")
 sliderWidth <- c("100%","125%")[2]
+epsgList <- 3571:3576
+'plotEmpty' <- function(desc="Simulation has not been done yet") {
+   plot(0,0,type="n",axes=FALSE,xlab="",ylab="")
+   text(0,0,desc)
+}
+'shapefile' <- function(fname) {
+   if (isZip <- length(grep("\\.zip$",basename(fname)))>0) {
+      list1 <- unzip(fname)
+      ret <- sf::st_read(list1[grep("\\.shp$",list1)],quiet=TRUE)
+      file.remove(list1)
+   }
+   else
+      ret <- sf::st_read(fname,quiet=TRUE)
+   if (FALSE)
+      return(ret)
+   sf::st_zm(ret)
+}
+'get_iucn_map' <- function() {
+   pb <- shapefile("IUCN_pb_subpopulations.shp.zip")[,c("POPID","POP")]
+   pb <- subset(pb,POPID>0)
+   iucn <- readxl::read_excel("IUCN_pb_subpopulations.xlsx")
+   iucn <- iucn[sample(nrow(iucn)),]
+   ind <- match(iucn$POPID,pb$POPID)
+   sf::st_geometry(iucn) <- sf::st_geometry(pb)[ind]
+   sf::st_transform(iucn,4326)
+}
+iucn_map <- get_iucn_map()
+'polarmap' <- function(epsg,centered=TRUE) {
+   if (is.character(epsg))
+      epsg <- as.integer(epsg)
+   extent <- 11000000 + 9036842.762 + 667
+   origin <- c(-extent, extent)
+   maxResolution <- 2*extent/256
+   bounds <- list(c(-extent,extent),c(extent,-extent))
+   resolutions <- purrr::map_dbl(0:18,function(x) maxResolution/(2^x))
+   crsArtic <- leafletCRS(crsClass="L.Proj.CRS",code=paste0("EPSG:",epsg)
+                         ,proj4def=sf::st_crs(epsg)$proj4string
+                         ,resolutions=resolutions,origin=origin,bounds=bounds)
+   m <- leaflet(options=leafletOptions(crs=crsArtic,minZoom=3,maxZoom=9))
+   if (centered) {
+      if (epsg==3575)
+         m <- setView(m,-110,80,4)
+      else if (epsg==3576)
+         m <- setView(m,-100,82,4)
+      else if (epsg==3574)
+         m <- setView(m,-40,87,4)
+      else if (epsg==3573)
+         m <- setView(m,-100,77,4)
+      else if (epsg==3572)
+         m <- setView(m,-78,78,4)
+      else if (epsg==3571)
+         m <- setView(m,-120,80,4)
+      else if (TRUE)
+         m <- setView(m,0,90,4)
+        # m <- setView(m,12.57,55.687,12) ## Kopenhagen
+   }
+   m <- addTiles(m,urlTemplate=paste0("http://{s}.tiles.arcticconnect.ca/osm_"
+                                     ,epsg,"/{z}/{x}/{y}.png")
+                ,attribution="Map: © ArcticConnect. Data: © OpenStreetMap contributors"
+                ,options=tileOptions(subdomains="abc"
+                                    ,noWrap=TRUE,continuousWorld=FALSE)) 
+  # if (!is.null(data))
+  #    m <- addPolygons(m,data=data,weight=0.5)
+  # m <- addGraticule(m,interval=10)
+   m
+}
 ui <- dashboardPage(skin = "blue"
-   ,dashboardHeader(title = "Polar Bear Demography - shiny",disable=TRUE,titleWidth = 350)
+   ,dashboardHeader(title="Polar Bear Demography",disable=TRUE,titleWidth=350)
    ,dashboardSidebar(NULL
       ,collapsed=!TRUE
       ,disable=TRUE
@@ -96,6 +163,9 @@ ui <- dashboardPage(skin = "blue"
                      .zzzemptymargin {
                         font-size: 0.3em;
                      }
+                     .nav > li > a {
+                        padding: 8px 12px;
+                     }
                   </style>'
                )
             )
@@ -134,7 +204,25 @@ ui <- dashboardPage(skin = "blue"
            #    ,br()
            # )
             ,fluidRow(NULL
-               ,tabBox(width=12,title = "",id = "tabset1", selected="Inputs"
+               ,tabBox(width=12,title = "",id = "tabset1", selected=c("Inputs","Map")[2]
+                  ,tabPanel(title="",value="Map",icon=icon("globe")
+                     ,fluidRow(NULL
+                        ,column(2)
+                        ,column(8
+                           ,uiOutput("iucn")
+                        )
+                        ,column(2
+                           ,selectInput("epsg","Projection (EPSG code)",epsgList
+                                       ,selected=3573)#sample(epsgList,1))
+                           ,selectInput("iucn_prm","Parameter"
+                                       ,grep(attr(iucn_map,"sf_column")
+                                            ,colnames(iucn_map)
+                                            ,value=TRUE,invert=TRUE)
+                                       ,selected=grep(c("Ecoregion","(COY.*litter|litter.*COY)")[1]
+                                                     ,colnames(iucn_map),ignore.case=TRUE,value=TRUE))
+                        )
+                     )
+                  )
                   ,tabPanel(title="",value="Inputs",icon=icon("edit")
                      # width=4,
                      ,fluidRow(NULL
@@ -205,11 +293,12 @@ ui <- dashboardPage(skin = "blue"
                                        ,width=sliderWidth
                                        ,min=0,max=1,value=init$removal.age,step=0.01
                                        )
-                           ,sliderInput("indep.C1", "Broken yearling families"
+                           ,sliderInput("broken.C1", "Broken yearling families"
                                        ,width=sliderWidth
                                        ,min=0, max=1
                                        ,value=init$indep.fraction[2],step=0.01
                                        )
+                          # ,textOutput("indep.C1")
                         )
                         ,column(3
                            ,sliderInput("removal.rate","2M/1F human-caused removal rate"
@@ -371,15 +460,16 @@ ui <- dashboardPage(skin = "blue"
                            ,column(8
                               ,uiOutput("markdown")
                               ,br()
-                              ,uiOutput("downloadPDF")
                               ,uiOutput("downloadHTML")
+                              ,uiOutput("downloadPDF")
+                              ,uiOutput("downloadNote")
                            )
                            ,column(2)
                        # )
                      )
                   )
                   ,tabPanel(title="",value="About",icon=icon("info-circle")
-                        ,includeMarkdown("about.md")
+                     ,includeMarkdown("about.md")
                   )
                  # ,tabPanel(title="",value="about",icon=icon("circle-info")
                      #,actionLink("gotomainTop", "Simulation",icon=icon("angle-double-left"))
@@ -437,6 +527,10 @@ server <- function(input, session, output) {
       m <- params()$indep.mortality
       sprintf("Independent sub-adult mortality: %.3f\n",m[3])
    })
+   output$indep.C1 <- renderText({
+     # m <- params()$
+      sprintf("Independent yearling ratio: %.3f\n",runif(1))
+   })
    observeEvent(input$C1, {
      # message("*** 'C1' observe")
       s <- as.numeric(c(input$C1,input$C2,input$C3))
@@ -491,7 +585,7 @@ server <- function(input, session, output) {
                         ,mortality.adult=input$mortality.adult
                         ,init.den=input$init.den
                         ,litter=input$litter
-                        ,indep.C1=input$indep.C1
+                        ,broken.C1=input$broken.C1
                         ,max.age=input$max.age
                         ,pregnant=input$pregnant
                         ,sexratio=input$sexratio
@@ -524,12 +618,10 @@ server <- function(input, session, output) {
    observeEvent(input$simulate3, {
       updateTabsetPanel(session,"tabset1",selected="Inputs")
    })
-   result <- eventReactive(input$simulate,{
+   result.dev <- eventReactive(input$simulate,{
   # result <- reactive({
       message("*** Simulate (reactive)")
      # updateTabsetPanel(session,"tabset1",selected="Results") ## NOT WORKING
-      rv <- params()
-     # print(c(rv=rv$seed2,input=input$seed2))
       ##~ res <- with(rv,simulate(max.age=max.age
                              ##~ ,litter=litter
                              ##~ ,sexratio=sexratio
@@ -547,9 +639,19 @@ server <- function(input, session, output) {
                              ##~ ,seed1=seed1
                              ##~ ,seed2=seed2
                              ##~ ))
+      rv <- params()
+     # print(c(rv=rv$seed2,input=input$seed2))
       res <- do.call("simulate",rv)
      # updateTabsetPanel(session,"restab",selected="Verbatim") ## NOT WORKING
       res
+   })
+   result.anytimecalled <- reactive({
+      ret <- do.call("simulate",params())
+      ret
+   })
+   result <- eventReactive(input$simulate,{
+      message("*** Simulate (reactive)")
+      do.call("simulate",params())
    })
   # resultUpdate <- reactive({
   #    message("*** result update ***")
@@ -565,7 +667,7 @@ server <- function(input, session, output) {
       updateSliderInput(session,"sexratio",value=res$sexratio)
       updateSliderInput(session,"init.den",value=res$init.den)
       updateSliderInput(session,"pregnant",value=res$pregnant)
-      updateSliderInput(session,"indep.C1",value=res$indep.fraction[2])
+      updateSliderInput(session,"broken.C1",value=res$indep.fraction[2])
       updateSliderInput(session,"mortality.cub",value=res$mortality.cub)
       updateSliderInput(session,"mortality.adult",value=res$mortality.adult)
       updateSliderInput(session,"fertility",value=res$fertility)
@@ -587,7 +689,7 @@ server <- function(input, session, output) {
       updateSliderInput(session,"sexratio",value=res$sexratio)
       updateSliderInput(session,"init.den",value=res$init.den)
       updateSliderInput(session,"pregnant",value=res$pregnant)
-      updateSliderInput(session,"indep.C1",value=res$indep.fraction[2])
+      updateSliderInput(session,"broken.C1",value=res$indep.fraction[2])
       updateSliderInput(session,"mortality.cub",value=res$mortality.cub)
       updateSliderInput(session,"mortality.adult",value=res$mortality.adult)
       updateSliderInput(session,"fertility",value=res$fertility)
@@ -617,13 +719,18 @@ server <- function(input, session, output) {
       updateTabsetPanel(session,"tabset1",selected="Inputs")
       updateTabItems(session,"tabs","main")
    })
+  # observeEvent(input$fertility, {
+  #    updateTabsetPanel(session,"tabset1",selected="Check")
+  # })
    output$markdown <- renderUI({
       analysis()
+      showModal(modalDialog(title = "Formatting in progress","Please wait"
+                       ,size="s",easyClose = TRUE,footer = NULL))
       if (!TRUE) {
          a1 <- knitr::knit('interpretation.Rmd',quiet=FALSE)
          a2 <- markdown::markdownToHTML(a1,fragment.only=TRUE)
          str(a2)
-         HTML(a2)
+         ret <- HTML(a2)
       }
       else {
          a1 <- "./res1.html" # "./res1.html" #tempfile()
@@ -635,8 +742,10 @@ server <- function(input, session, output) {
                           )
          a2 <- scan(a1,what=character(),encoding="UTF-8",quiet=TRUE)
         # file.remove(a1)
-         HTML(a2)
+         ret <- HTML(a2)
       }
+      removeModal()
+      ret
    })
    output$download_pdf <- downloadHandler(
       filename = "report.pdf",
@@ -644,33 +753,43 @@ server <- function(input, session, output) {
          fname <- "interpretation.Rmd"
         # tempReport <- file.path(tempdir(),fname)
         # file.copy(fname,tempReport,overwrite=TRUE)
+         showModal(modalDialog(title = "Compiling in progress","Please wait"
+                          ,size="s",easyClose = TRUE,footer = NULL))
          rmarkdown::render(fname
                           ,output_file=file
-                          ,output_format=bookdown::pdf_document2(
-                             toc=FALSE
+                          ,output_format=bookdown::pdf_document2(toc=FALSE
                              ,number_sections=FALSE
                           )
                           ,params=list(prm=analysis(),kind=2L)
                           ,envir=new.env(parent=globalenv()))
+         removeModal()
       }
    )
    output$download_html <- downloadHandler(
       filename = "report.html",
       content = function(file) {
          fname <- "interpretation.Rmd"
+         showModal(modalDialog(title = "Knitting in progress","Please wait"
+                          ,size="s",easyClose = TRUE,footer = NULL))
          rmarkdown::render(fname
                           ,output_file=file
-                          ,output_format=bookdown::html_document2(
-                             toc=FALSE
+                          ,output_format=bookdown::html_document2(toc=FALSE
+                             ,base_format=rmarkdown::html_vignette
+                             ,css="https://nplatonov.github.io/html_vignette.css"
                              ,number_sections=FALSE
                           )
                           ,params=list(prm=analysis(),kind=2L)
                           ,envir=new.env(parent=globalenv()))
+         removeModal()
       }
    )
    output$downloadPDF <- renderUI({
       req(analysis())
       downloadLink("download_pdf","Download PDF")
+   })
+   output$downloadNote <- renderUI({
+      req(analysis())
+      helpText("Note 2019-02-08: PDF compilation on shinyapps server can be failed")
    })
    output$downloadHTML <- renderUI({
       req(analysis())
@@ -738,73 +857,148 @@ server <- function(input, session, output) {
    })
    output$uiPreAnalysis <- renderUI({
       message("*** UI preAnalysis")
-      if (!input$simulate)
-            return(textOutput("printReminder"))
+     # if (!input$simulate)
+     #    return(textOutput("printReminder"))
+     #    return(notSimulatedPlot())
       plotOutput("plotPreAnalysis",height=height[2])
    })
    output$printReminder <- renderPrint({
       cat("There is no data for visulation. Click 'Simulate'.")
    })
    output$plotPreAnalysis <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty("There is no data for visulation.\nClick 'Simulate'."))
       preAnalysis()$p5
      # ggplotly(preAnalysis()$p5+theme(legend.position="none"))
      # NULL  
    })
    output$plotPopSize <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       analysis()$p5
      # ggplotly(analysis()$p5+theme(legend.position="none"))
    })
    output$plotInterbirth <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       analysis()$p1
    })
    output$plotDens <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       analysis()$p2
    })
    output$plotCubs <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       analysis()$p3
    })
    output$plotAdults <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       analysis()$p4
    })
    output$plotP7a <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       res <- analysis()
       res$p7+facet_grid(age~.)+res$p0
    })
    output$plotP7b <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       res <- analysis()
       res$p7+facet_grid(.~age)+res$p0
    })
    output$plotLitterSize <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       res <- analysis()
       res$p8 #+facet_grid(.~age)+res$p0
    })
    output$plotP8b <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       res <- analysis()
       res$p8 #+facet_grid(age~.)+res$p0
    })
    output$plotSurvival <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       analysis()$p9
    })
    output$plotLitterProduction <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       analysis()$p10
    })
    output$plotSensitivity1 <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       sensitivity()[[1]]
    })
    output$plotSensitivity2 <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       sensitivity()[[2]]
    })
    output$plotSensitivity3 <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       sensitivity()[[3]]
    })
    output$plotSensitivity4 <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       sensitivity()[[4]]
    })
    output$plotSensitivity5 <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       sensitivity()[[5]]
    })
    output$plotSensitivity6 <- renderPlot({
+      if (!input$simulate)
+         return(plotEmpty())
       sensitivity()[[6]]
+   })
+   output$iucn <- renderUI({
+     # if (T & input$rpath==editName) {
+     #    editModUI("editor",height=height)
+     # }
+     # else {
+     #   # leafletOutput("viewerMapview",height="500px")
+     #    leafletOutput("viewerLeaflet",height=height)
+     # }
+      leafletOutput("viewerLeaflet",height="500px")
+   })
+   output$viewerLeaflet <- renderLeaflet({
+      epsg <- as.integer(input$epsg)
+      prm <- input$iucn_prm
+      m <- polarmap(epsg)
+      ##~ pal <- colorNumeric(palette="viridis",domain=freq3$sum)
+      if (T)
+         m <- addPolygons(m,data=iucn_map
+                        ,opacity=0
+                        ,fillOpacity=0
+                        ,label=iucn_map[["Abbrev"]]
+                        ,labelOptions=labelOptions(noHide=T,textOnly=T)
+                        )
+      if (T)
+         m <- addPolygons(m,data=iucn_map
+                        # ,color=~pal(sum)
+                        # ,weight=0
+                         ,popup=~as.character(POP)
+                        # ,label=~as.character(POPID)
+                        # ,label=paste0(iucn_map[["Abbrev"]],": ",iucn_map[[prm]])
+                         ,label=iucn_map[[prm]]
+                         ,stroke=TRUE
+                         ,weight=1
+                         ,fillOpacity=0.1
+                         ,highlightOptions=highlightOptions(fillOpacity=0.3)
+                        # ,labelOptions=labelOptions(noHide=T,textOnly=T)
+                         )
+      m
    })
 }
 if (.argv0.()=="shiny.R") {

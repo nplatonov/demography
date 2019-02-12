@@ -209,7 +209,7 @@
   # print(da1[1:4,])
   # print(da2[1:4,])
   # comb.mortality <- mortality
-  # indep.fraction <- c(C0=0.001,C1=indep.C1,C2=0.99)
+  # indep.fraction <- c(C0=0.001,C1=broken.C1,C2=0.99)
   # comb.mortality[1:3] <- mortality[1:3]*(1-indep.fraction)+
   #                        indep.mortality[1:3]*indep.fraction
   # da3 <- data.frame(age=age,mortality=comb.mortality
@@ -711,7 +711,7 @@
        ,p0=p0)
 }
 'curveInputs' <- function(indep.mortality,mortality.cub,mortality.adult,init.den
-                         ,litter,indep.C1,max.age,pregnant,sexratio,seed1
+                         ,litter,broken.C1,max.age,pregnant,sexratio,seed1
                          ,seed2,fertility,removal.rate,removal.age
                          ,k1d,k1i,k2) {
    mortality <- mortalityTube(max.age=max.age,mortality.cub=mortality.cub
@@ -722,7 +722,7 @@
    mortality <- mortality$depend
    age <- seq(max.age)
    indep.fraction <- init$indep.fraction
-   indep.fraction[2] <- indep.C1
+   indep.fraction[2] <- broken.C1
    ret <- list(mortality=mortality
               ,indep.mortality=indep.mortality
               ,mortality.cub=mortality.cub

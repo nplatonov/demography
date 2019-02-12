@@ -48,7 +48,7 @@
                          ,mortality.adult=mortality.adult
                          ,init.den=init.den
                          ,litter=litter
-                         ,indep.C1=indep.fraction[2]
+                         ,broken.C1=indep.fraction[2]
                          ,max.age=max.age
                          ,pregnant=pregnant
                          ,sexratio=sexratio
@@ -77,7 +77,7 @@
    input2prn$dens <- NULL # stable (100)
    if (!quiet)
       print(data.frame(input2prn))
-  # indep.fraction <- c(C0=0.001,C1=indep.C1,C2=0.99) # 0.27 ## Broken families
+  # indep.fraction <- c(C0=0.001,C1=broken.C1,C2=0.99) # 0.27 ## Broken families
   # pregnant <- 0.64 #0.63
    p <- litterFraction(litter)
    age <- c(0,seq(max.age))
