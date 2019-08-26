@@ -2,27 +2,40 @@
 params:
   prm: NULL
   kind: 0
+  dpath: "./resources"
 pagetitle: Polar Bear Demography
+title: Mockup for report based on current scenario
 author: Nikita Platonov
+date: "`r as.POSIXlt(Sys.time())`"
 bibliography: ./demography.bib
 link-citations: true
 csl: https://nplatonov.github.io/platt3.csl
 csl2: C:/platt/R/style/platt3.csl
 output:
+   bookdown::pdf_document2:
+      toc: false
+      number_sections: false
    bookdown::html_document2:
       base_format: rmarkdown::html_vignette
       css: https://nplatonov.github.io/html_vignette.css
       css2: C:/platt/R/style/html_vignette.css
-      lib_dir: ./resources
+      lib_dir: "`r params$dpath`"
       self_containded: false
       number_sections: no
-   bookdown::pdf_document2:
-      toc: false
-      number_sections: false
    pdf_document:
       fig_caption: false
    html_fragment: #
 ---
+
+<style>
+   .plotly { display: block; margin: auto;}
+   @media only screen and (max-width: 640px) {
+     .plotly {
+        max-width: 80vw;
+        max-height: 60vw;
+     }
+   }
+</style>
 
 ```{r setup,include=FALSE}
 # require(ggplot2)
@@ -42,12 +55,58 @@ if (kind==0) {
 }
 input <- res$input
 knitr::opts_chunk$set(fig.align="center",fig.width=6,fig.height=4.8
-                     ,widgetframe_widgets_dir='./resources'
+                     ,widgetframe_widgets_dir=params$dpath
+                     ,echo=F,message=F,warning=F
                      )
+file.remove(dir(path=params$dpath,pattern="^orca.+\\.pdf$",full.names=TRUE,recursive=TRUE))
 ```
 
-```{r eval=TRUE,include=FALSE}
+```{r eval=T,include=F}
 filetype <- knitr::opts_knit$get("rmarkdown.pandoc.to")
+'publish' <- function(p) {
+   if (inherits(p,"ggplot")) {
+      ret <- p
+   }
+   else if (inherits(p,"plotly")) {
+      if (filetype %in% "latex") {
+         if (!dir.exists(params$dpath))
+            dir.create(params$dpath,recursive=TRUE)
+         if (TRUE) {
+            fs <- 18
+            p <- plotly::layout(p
+                               ,title=list(font=list(size=fs))
+                               ,legend=list(font=list(size=round(0.9*fs)))
+                               ,xaxis=list(tickfont=list(size=fs),titlefont=list(size=fs))
+                               ,yaxis=list(tickfont=list(size=fs),titlefont=list(size=fs))
+                               )
+         }
+        # if (FALSE) { 
+        #    opW <- options(warn=-10)
+        #    ret <- plotly::export(p)
+        #    options(opW)
+        # }
+         if (nchar(Sys.which("ZZZorca"))) {
+            fileout <- file.path(params$dpath,basename(tempfile(pattern="orca",fileext=".pdf")))
+            plotly::orca(p,fileout)
+            ret <- knitr::include_graphics(fileout)
+         }
+         else {
+            fileout <- file.path(params$dpath,basename(tempfile(pattern="orca",fileext=".png")))
+            ret <- try(plotly::plotly_IMAGE(p,width=800,height=600,scale=1,out_file=fileout))
+            if (!inherits(ret,"try-error"))
+               ret <- knitr::include_graphics(fileout,dpi=150)
+            else {
+               opW <- options(warn=-10)
+               ret <- plotly::export(p)
+               options(opW)
+            }
+         }
+      }
+      else
+         ret <- p
+   }
+   ret
+}
 ```
 ---- 
 
@@ -60,32 +119,8 @@ This is a simulator of polar bear lifespan based on certain demographical parame
 In scenario, maximal age is **`r input$max.age`** years.
 
 
-```{r p3, echo=FALSE, fig.cap="Distribuion of number of cubs during lifespan"}
-if (!is.null(res$p3)) {
-   if (filetype %in% c("html4","latex","html")) {
-      print(res$p3)
-     # print(class(res$p3))
-   }
-   else if (filetype %in% c("zhtml4","zhtml")) {
-      print("HTML PLOTLY")
-      require(widgetframe)
-      suppressMessages({
-         require(plotly)
-      })
-      frameWidget(ggplotly(res$p3))#,height=590,width=790)
-      ##~ if (TRUE) {
-         ##~ require(widgetframe)
-         ##~ require(plotly)
-         ##~ frameWidget(ggplotly(res$p3))#,height=590,width=790)
-      ##~ }
-      ##~ else if (TRUE)
-         ##~ plotly::ggplotly(res$p3,dynamicTicks=!TRUE)
-      ##~ else if (TRUE) {
-         ##~ print(res$p3)
-         ##~ plotly::ggplotly()
-      ##~ }
-   }
-}
+```{r p3, fig.cap="Distribuion of number of cubs during lifespan"}
+publish(res$p3$plot)
 ```
 
 `r if ((kind==2)&&(!is.null(res$p3))) "Histogram of cubs during lefespan per female is presented on Fig.\\@ref(fig:p3)."`

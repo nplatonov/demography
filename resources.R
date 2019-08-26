@@ -38,15 +38,33 @@
   # vuln <- round(vuln,3)
    if (!plot)
       return(round(vuln,3))
-   col.base <- "#428BCA"
-   col.line <- paste0(col.base,"FF")
-   p1 <- ggplot(data.frame(age=age,vuln=vuln),aes(age,vuln))+
-      geom_point()+geom_line(colour=col.line)+
-      xlab("Age")+ylab("Vulnerability to removal")+
-      scale_y_continuous(lim=c(0,1))+
-      theme(panel.background=element_rect(fill=paste0(col.base,"40")))+
-      NULL
-   p1
+   res <- data.frame(age=age,vuln=vuln)
+   cs <- colorScheme()
+   if (T & "plotly" %in% loadedNamespaces()) {
+      p1 <- plot_ly()
+      p1 <- add_trace(p1,data=res,type="scatter",mode="lines+markers"
+                     ,x=~age,y=~vuln
+                     )
+      p1 <- layout(p1,xaxis=cs$axis,yaxis=cs$axis,legend=cs$legend,title=cs$title)
+      p1 <- layout(p1
+                  ,xaxis=list(title="Age")
+                  ,yaxis=list(title="Vulnerability to removal")
+                  )
+      prm <- cs$config
+      prm[[1]] <- p1
+      p1 <- do.call("config",prm)
+   }
+   else {
+      col.base <- "#428BCA"
+      col.line <- paste0(col.base,"FF")
+      p1 <- ggplot(res,aes(age,vuln))+
+         geom_point()+geom_line(colour=col.line)+
+         xlab("Age")+ylab("Vulnerability to removal")+
+         scale_y_continuous(lim=c(0,1))+
+         theme(panel.background=element_rect(fill=paste0(col.base,"40")))+
+         NULL
+   }
+   list(plot=p1,data=res)
 }
 'fertilityCurve' <- function(age,d=3,s=9,m=10,u=1
                               ,desc="<dummy>",plot=FALSE) {
@@ -70,21 +88,39 @@
      # plot(age,fert,type="b");q()
       return(fert)
    }
-   col.base <- "#428BCA"
-   col.line <- paste0(col.base,"FF")
-   p1 <- ggplot(data.frame(age=age,fert=fert),aes(age,fert))+
-      geom_point()+geom_line(colour=col.line)+
-      xlab("Age")+ylab("Fertility")+
-     # scale_colour_manual(values=c("indianred2","seagreen3","sienna3"))+
-     # scale_colour_hue()+
-     # guides(colour=guide_legend(title=""))+
-     # theme(legend.pos=c(0.25,0.85))+
-     # theme(legend.background=element_rect(fill="transparent"))+
-     # theme(legend.key=element_rect(fill="transparent",colour="transparent"))+
-     # theme(legend.box.background=element_rect(fill="transparent"))+
-      theme(panel.background=element_rect(fill=paste0(col.base,"40")))+
-      NULL
-   p1
+   res <- data.frame(age=age,fert=fert)
+   cs <- colorScheme()
+   if (T & "plotly" %in% loadedNamespaces()) {
+      p1 <- plot_ly()
+      p1 <- add_trace(p1,data=res,type="scatter",mode="lines+markers"
+                     ,x=~age,y=~fert
+                     )
+      p1 <- layout(p1,xaxis=cs$axis,yaxis=cs$axis,legend=cs$legend,title=cs$title)
+      p1 <- layout(p1
+                  ,xaxis=list(title="Age")
+                  ,yaxis=list(title="Fertility")
+                  )
+      prm <- cs$config
+      prm[[1]] <- p1
+      p1 <- do.call("config",prm)
+   }
+   else {
+      col.base <- "#428BCA"
+      col.line <- paste0(col.base,"FF")
+      p1 <- ggplot(res,aes(age,fert))+
+         geom_point()+geom_line(colour=col.line)+
+         xlab("Age")+ylab("Fertility")+
+        # scale_colour_manual(values=c("indianred2","seagreen3","sienna3"))+
+        # scale_colour_hue()+
+        # guides(colour=guide_legend(title=""))+
+        # theme(legend.pos=c(0.25,0.85))+
+        # theme(legend.background=element_rect(fill="transparent"))+
+        # theme(legend.key=element_rect(fill="transparent",colour="transparent"))+
+        # theme(legend.box.background=element_rect(fill="transparent"))+
+         theme(panel.background=element_rect(fill=paste0(col.base,"40")))+
+         NULL
+   }
+   list(plot=p1,data=res)
 }
 'repairFamily' <- function(pop,verbose=FALSE) {
    pa <- table(pop$parent)
@@ -196,7 +232,8 @@
    mortality[4] <- indep.mortality[4]
    list(depend=mortality,indep=indep.mortality)
 }
-'mortalityTubePlot' <- function(mortality) {
+'mortalityTubePlot' <- function(mortality,scale=c("lin","log")) {
+   scale <- match.arg(scale)
    indep <- mortality$indep
    depend <- mortality$depend
    age <- seq_along(depend)
@@ -219,19 +256,47 @@
                     ,status=unname(st["adult"]))
    da <- rbind(da1,da2,da4)
    da$status <- factor(da$status,levels=st,ordered=TRUE)
-   tube <- ggplot(da,aes(age,mortality,colour=status))+
-      geom_point()+geom_line()+
-      xlab("Age")+ylab("Mortality")+
-     # scale_colour_manual(values=c("indianred2","seagreen3","sienna3"))+
-      scale_colour_hue()+
-      guides(colour=guide_legend(title=""))+
-      theme(legend.pos=c(0.35,0.85))+
-      theme(legend.background=element_rect(fill="transparent"))+
-      theme(legend.key=element_rect(fill="transparent",colour="transparent"))+
-     # theme(legend.box.background=element_rect(fill="transparent"))+
-      theme(panel.background=element_rect(fill="#428BCA40"))+
-      NULL
-   tube
+   if (T & "plotly" %in% loadedNamespaces()) {
+      cs <- colorScheme()
+      daAdult <- da[da$status==st["adult"],]
+      age0 <- min(daAdult$age)
+      daAdult <- da[da$status==st["adult"] & da$age>=age0,]
+      daIndep <- da[da$status==st["indep"] & da$age<=age0,]
+      daDep <- da[da$status==st["dep"] & da$age<=age0,]
+      da2 <- rbind(daAdult,daDep,daIndep)
+      tube <- plot_ly()
+      tube <- add_trace(tube,data=da2,type="scatter",mode="lines+markers"
+                       ,x=~age,y=~mortality,split=~status)
+      tube <- layout(tube,xaxis=cs$axis,yaxis=cs$axis,legend=cs$legend,title=cs$title)
+      tube <- layout(tube
+                    ,xaxis=list(title="Age")
+                    ,yaxis=list(title=paste("Mortality"
+                                  ,switch(scale,log="(log scale)","(linear scale)"))
+                               ,type=switch(scale,log="log","linear")
+                               )
+                    ,legend=list(x=0.2,y=1,bgcolor="transparent")
+                    )
+      prm <- cs$config
+      prm[[1]] <- tube
+      tube <- do.call("config",prm)
+   }
+   else {
+      tube <- ggplot(da,aes(age,mortality,colour=status))+
+         geom_point()+geom_line()+
+         xlab("Age")+ylab("Mortality")+
+        # scale_colour_manual(values=c("indianred2","seagreen3","sienna3"))+
+         scale_colour_hue()+
+         guides(colour=guide_legend(title=""))+
+         theme(legend.pos=c(0.35,0.85))+
+         theme(legend.background=element_rect(fill="transparent"))+
+         theme(legend.key=element_rect(fill="transparent",colour="transparent"))+
+        # theme(legend.box.background=element_rect(fill="transparent"))+
+         theme(panel.background=element_rect(fill="#428BCA40"))+
+         NULL
+      if (scale=="log")
+         tube <- tube+scale_y_log10()
+   }
+   list(plot=tube,data=da)
 }
 'initialState' <- function(mortality,init.den,litter,max.age,sigma,removal.age
                           ,reprod.age,sexratio,reprod.cycle,removal,subad
@@ -383,9 +448,12 @@
    ##~ print(GL)
    return(ret)
 }
-'randomize' <- function(seed1=NA,seed2=NA,verbose=FALSE) {
-   if (F & isShiny) {
-      seed1 <- 275 ## 267
+'randomize' <- function(seed1=NA,seed2=NA,seed3=NA,verbose=FALSE) {
+   if (T & isShiny) { ## switch to 'F'
+      if (is.na(seed1)) {
+         seed1 <- 703 ## 267 275
+        # seed2 <- 703 ## comment it
+      }
      # seed2 <- 818 ## 818
    }
    if (is.na(seed1)) {
@@ -396,34 +464,46 @@
    removal.rate <- sample(rexp(10e3),20)
    res <- list(seed1=seed1
               ,seed2=NA
-              ,max.age=sample(29:40,1)
-              ,litter=sample(seq(1.4,2.1,by=0.01),1)
+              ,seed3=NA
+              ,max.age=sample(26:40,1)
+              ,litter=round(sample(seq(1.2,2.2,by=0.01),1),6)
               ,litterF=NA
               ,sexratio=50
               ,init.den=100
-              ,pregnant=sample(seq(0.5,0.9,by=0.01),1)
-              ,mortality.cub=sample(seq(0.25,0.45,by=0.01),1)
-              ,mortality.adult=sample(seq(0.06,0.15,by=0.005),1)
-              ,indep.fraction=c(0.001,sample(seq(0.05,0.75,by=0.05),1),0.999)
-              ,fertility=sample(seq(0.1,1.0,by=0.01),1)
-              ,removal.rate=sample(seq(-100.15,0.05,by=0.001),1)
+              ,pregnant=round(sample(seq(0.5,0.9,by=0.01),1),6)
+              ,mortality.cub=round(sample(seq(0.25,0.45,by=0.01),1),6)
+              ,mortality.adult=round(sample(seq(0.08,0.12,by=0.002),1),6)
+              ,indep.fraction=round(c(0.001,sample(seq(0.05,0.75,by=0.05),1),0.999),6)
+              ,fertility=round(sample(seq(0.1,1.0,by=0.01),1),6)
+              ,removal.rate=round(sample(seq(-100.15,0.05,by=0.001),1),6)
              # ,removal.rate=round(0.03*sample(removal.rate/max(removal.rate),1),3)
-              ,removal.age=sample(seq(0.1,1.0,by=0.01),1)
+              ,removal.age=round(sample(seq(0.1,1.0,by=0.01),1),6)
               ,k1d=10
               ,k1i=as.numeric(sample(seq(3,18),1))
               ,k2=5
               )
    res$litterF <- litterFraction(res$litter)
    res$removal.rate[res$removal.rate<0] <- 0
+  # print(res$pregnant-round(res$pregnant,6))
    if ((FALSE)&&(isShiny))
       res$removal.rate <- 0
    noseed2 <- is.na(seed2)
+   noseed3 <- is.na(seed3)
    if (noseed2) {
       set.seed(NULL)
       seed2 <- sample(100:999,1)
    }
-   res$seed2 <- seed2
-   set.seed(seed2)
+   if (noseed3) {
+      if (FALSE) {
+         set.seed(NULL)
+         seed3 <- sample(100:999,1)
+      }
+      else
+         seed3 <- seed2
+   }
+   res$seed2 <- seed2 # 702
+   res$seed3 <- seed3 # 701
+  # set.seed(seed2)
    if (verbose)
       print(as.data.frame(res))
    res
@@ -435,46 +515,54 @@
    ##~ str(new)
    ##~ cat("----- update -----\n")
    aname <- names(old)
-   bname <- names(new)
    indep.ind <- grep("indep",aname)
-   indep.fraction <- old[[indep.ind]]
-   old[[indep.ind]] <- indep.fraction[2]
-   for (i in seq_along(bname)) {
-      j <- match(bname[i],aname)
-      if (is.na(j))
-         next
-      b <- new[[i]]
-     # a <- old[[j]]
-      if (bname[i]=="litter") {
-         old[["litterF"]] <- litterFraction(b)
-      }
-      else if (bname[i]=="litterF") {
-         old[["litter"]] <- sum(seq_along(b)*b)
-      }
-      if ((is.numeric(b))||(length(b)>1)||(is.language(b))) {
-         if (is.numeric(b))
-            old[[j]] <- b
-         else if (is.symbol(b)) {
-            old[[j]] <- eval.parent(b)
-           # q()
+   if (!missing(new)) {
+      bname <- names(new)
+      indep.fraction <- old[[indep.ind]]
+      old[[indep.ind]] <- indep.fraction[2]
+      for (i in seq_along(bname)) {
+         j <- match(bname[i],aname)
+         if (is.na(j))
+            next
+         b <- new[[i]]
+        # a <- old[[j]]
+         if (bname[i]=="litter") {
+            old[["litterF"]] <- litterFraction(b)
          }
-         else if (is.language(b)) {
-            print("LANGUAGE")
-            old[[j]] <- eval.parent(b)
-            stop("I don't know how to deal with it")
+         else if (bname[i]=="litterF") {
+            old[["litter"]] <- sum(seq_along(b)*b)
          }
-         else
-            stop("unkn class of 'b'")
-      }
-      else if (is.character(b)) {
-         b <- try(eval(parse(text=paste0(a,b))))
-         if (!inherits(b,"try-error"))
-            old[[j]] <- b
-      }
-      else if (anyNA(b))
-         next
-      else {
-         stop("required interpretation of 'b'")
+         if ((is.numeric(b))||(length(b)>1)||(is.language(b))) {
+            if (is.numeric(b)) {
+               if (is.integer(b))
+                  old[[j]] <- b
+               else
+                  old[[j]] <- round(b,4)
+              # if (length(grep("(seed|^k\\d|removal|mortality|sexratio|fertility|litter|init\\.den|max\\.age|pregnant)",bname[i]))) {
+              # }
+            }
+            else if (is.symbol(b)) {
+               old[[j]] <- eval.parent(b)
+              # q()
+            }
+            else if (is.language(b)) {
+               print("LANGUAGE")
+               old[[j]] <- eval.parent(b)
+               stop("I don't know how to deal with it")
+            }
+            else
+               stop("unkn class of 'b'")
+         }
+         else if (is.character(b)) {
+            b <- try(eval(parse(text=paste0(a,b))))
+            if (!inherits(b,"try-error"))
+               old[[j]] <- b
+         }
+         else if (anyNA(b))
+            next
+         else {
+            stop("required interpretation of 'b'")
+         }
       }
    }
    if ((length(i <- grep("sex",aname))==1)&&(old[[i]]>1))
@@ -484,9 +572,11 @@
   # }
    if (length(old[[indep.ind]])==1)
       old[[indep.ind]] <- c(indep.fraction[1],old[[indep.ind]],indep.fraction[3])
+  # old[[indep.ind]] <- old[[indep.ind]][2]
    old
 }
 'growthRate' <- function(lifestory,verbose=!FALSE,...) {
+  # str(list(...))
    if (T & length(list(...))>0) {
      # print("growthRate -> simulate")
      # lifestory <- simulate(lifestory,verbose=FALSE,...)
@@ -496,12 +586,23 @@
       return(numeric())
   # print(analyze(lifestory)$p5)
    pop <- subset(lifestory$output,season==0)
-   res <- aggregate(pop$id,by=list(epoch=pop$epoch),length)$x
+  # print(unique(pop$epoch))
+   res2 <- aggregate(pop$id,by=list(era=pop$era,epoch=pop$epoch),length)#$x
+   ind <- which(res2$era=="C")
+   ind <- c(min(ind)-1L,ind)
+   res2 <- res2[ind,]
+  # print(res2)
+   res <- res2$x
    if (length(res)<5)
       return(numeric())
+   if (T & verbose) {
+      names(res) <- paste0(res2$epoch,res2$era)
+      print(res)
+   }
    res <- diff(res)/head(res,-1)
+  # str(res)
    if (verbose)
-      cat(sprintf("Growth rate = %+.3f\u00B1%.3f\n",mean(res),sd(res)))
+      cat(sprintf("Growth rate = %+.3f\u00B1%.3f (%d)\n",mean(res),sd(res),length(res)))
    res
 }
 'perturb' <- function(lifestory) {
@@ -513,19 +614,24 @@
    }
   # str(lifestory$input)
    prmList <- c('1'="mortality.adult",'2'="mortality.cub",'3'="max.age"
-               ,'4'="litter",'5'="pregnant",'6'="indep.fraction")
-   ret <- vector("list",length(prmList))
+               ,'4'="litter",'5'="pregnant",'6'="indep.fraction"
+               ,'7'="fertility",'8'="k1i",'9'="k1d")
+   standardized <- c("indep.fraction","pregnant","fertility","k1i","k1d")
+   ret <- vector("list",9) # length(prmList))
    names(ret) <- prmList
    cs <- colorScheme()
    if (isShiny)
       showNotification(closeButton=TRUE,"check reference"
                       ,id="ref",duration=99)
-   g0 <- growthRate(lifestory,nochanged=TRUE)
+   cat("---- basic -----\n")
+   growthRate(lifestory)
+   g0 <- growthRate(lifestory,nochanged_dummy=TRUE)
+   cat("---- ===== -----\n")
    if (isShiny)
       removeNotification(id="ref")
    if (!length(g0))
       return(ret)
-  # set.seed(NULL)
+  # return(ret)
    gr0 <- mean(g0)
    agr0 <- abs(gr0)
    sgr0 <- sign(gr0)
@@ -537,25 +643,31 @@
                    ,'litter'="COY litter size"
                    ,'pregnant'="Birth success"
                    ,'indep.fraction'="Broken yearling families"
+                   ,'fertility'="Age specific fertility"
+                   ,'k1i'="Mort. rate of ind. youngs"
+                   ,'k1d'="Mort. rate of dep. youngs"
                    ,p)
       prm0 <- lifestory$input[[p]]
       if (p %in% c("indep.fraction"))
          prm0 <- prm0[2]
       message(paste0(lab,": ",prm0))
       sc <- switch(p
-                  ,'mortality.adult'=-0.05
+                  ,'mortality.adult'=-0.03
                   ,'mortality.cub'=-0.05
                   ,'max.age'=+0.05
                   ,'litter'=+0.05
                   ,'pregnant'=+0.1
                   ,'indep.fraction'=0.2
+                  ,'fertility'=+0.1
+                  ,'k1d'=2
+                  ,'k1i'=2
                   ,0.1)
       if (TRUE) {
         # print(sc)
          if (agr0>0.005) {
             sc <- sc*round(100*agr0)^0.75
          }
-         if (p %in% c("indep.fraction","pregnant"))
+         if (p %in% standardized)
             si <- c(-3,-2,-1,0,1,2,3)
          else if (gr0>(+0.002))
             si <- c(-3,-2,-1,0,1)*sign(sc)#*(-sgr0)
@@ -563,11 +675,14 @@
             si <- c(-1,0,1,2,3)*sign(sc)#*(-sgr0)
          else
             si <- c(-2,-1,0,1,2)
-         if (p %in% c("pregnant","indep.fraction")) {
+         if (p %in% standardized) {
             prm <- prm0+si*sc
            # print(prm)
             if (TRUE) {
-               indP <- prm>=0 & prm<=1
+               if (p %in% c("k1d","k1i"))
+                  indP <- prm>=1 & prm<=20
+               else
+                  indP <- prm>=0 & prm<=1
                prm <- prm[indP]
                si <- si[indP]
             }
@@ -603,9 +718,15 @@
          showNotification(closeButton=TRUE,paste0(lab,"...")
                          ,id=p,duration=99)
       if (prm_validation <- TRUE) {
-         if (p %in% c("pregnant","indep.fraction")) {
-            prm[prm<0.01] <- 0.01
-            prm[prm>0.99] <- 0.99
+         if (p %in% standardized) {
+            if (p %in% c("k1d","k1i")) {
+               prm[prm<1] <- 1
+               prm[prm>20] <- 20
+            }
+            else {
+               prm[prm<0.01] <- 0.01
+               prm[prm>0.99] <- 0.99
+            }
          }
       }
       indD <- which(!duplicated(prm))
@@ -641,8 +762,9 @@
          removeNotification(id=p)
       if (is.null(res2))
          next
-      if (length(desc)==length(unique(desc)))
+      if (length(desc)==length(unique(desc))) {
          res$desc <- factor(desc,levels=desc[order(prm)],ordered=TRUE)
+      }
       else {
          desc2 <- paste0(prmlab,"\n",desc)
          res$desc <- factor(desc2,levels=desc2[order(prm)],ordered=TRUE)
@@ -658,7 +780,58 @@
                             ,ordered=TRUE)
       }
       names(desc) <- prmlab
-      if (!FALSE)
+      if ("plotly" %in% loadedNamespaces()) {
+         if (T) {
+            da <- res2
+           # da <- da[sample(nrow(da)),]
+            prm <- da$prm
+            prmS <- sort(unique(prm))
+            da$prm <- as.character(prm)
+            prm0 <- as.character(prm0)
+            ind <- which(da$prm %in% prm0)
+            da$prm[ind] <- paste0("<b>",prm[ind],"</b>")
+            indS <- which(prmS %in% prm0)
+            prmS[indS] <- paste0("<b>",prmS[indS],"</b>")
+            da$prm <- factor(da$prm,level=prmS,ordered=TRUE)
+           # print(levels(da$prm))
+           # print(levels(da$desc))
+           # da$desc <- as.character(da$desc)
+            res2 <- da
+         }
+         lab <- c(x="Growth Rate",y=lab)
+         res2$label <- gsub("((.+)(\\n))*(.+)","\\4",res2$desc)
+         s1 <- plot_ly()
+         s1 <- add_trace(s1,data=res2,type="violin",split=~prm
+                        ,text=~desc
+                        ,name=~label
+                        ,hoverinfo="name"
+                        ,y=~prm,x=~value,orientation='h'
+                       # ,x=~prm,y=~value,orientation='v',showlegend=FALSE
+                        ,meanline=list(visible=T)
+                        )
+         if (FALSE)
+            s1 <- layout(s1
+                        ,xaxis=c(list(title=lab["x"]),cs$axis)
+                        ,yaxis=c(list(title=lab["y"],type="category"),cs$axis)
+                        ,legend=cs$legend
+                        )
+         else {
+            s1 <- layout(s1,xaxis=cs$axis,yaxis=cs$axis,legend=cs$legend)
+            s1 <- layout(s1
+                        ,xaxis=list(title=lab["x"])
+                        ,yaxis=list(title=lab["y"]
+                                  # ,categoryorder="array"
+                                  # ,categoryarray=prm2
+                                   )
+                        ,legend=list(orientation='v')
+                       # ,legend=list(orientation='h',x=0.5,y=1.2)
+                        )
+            prm <- cs$config
+            prm[[1]] <- s1
+            s1 <- do.call("config",prm)
+         }
+      }
+      else if (!FALSE)
          s1 <- ggplot(res2,aes(prm,value))+
                geom_violin(fill=cs$hist,colour=cs$base)+
                geom_point(data=res,aes(prm,mean))+
@@ -668,7 +841,7 @@
                coord_flip()+
                cs$p0+
                NULL
-      else if (!FALSE)
+      else if (FALSE)
          s1 <- ggplot(res2,aes(prm,value))+
                geom_violin(fill=cs$hist,colour=cs$base)+
                geom_point(data=res,aes(prm,mean))+
@@ -689,7 +862,7 @@
                cs$p0+
                NULL
       }
-      ret[[p]] <- s1
+      ret[[p]] <- list(plot=s1,data=res2)
      # break
    }
    ret
@@ -707,17 +880,37 @@
          theme(legend.margin=margin(t=-1,b=0,unit='char'))+
          theme(strip.text.y=element_text(angle=0,hjust=0.5,vjust=0.5))
         # theme(legend.key.size=size(1,unit="char"))
+   fs <- 12
+   axis <- list(tickfont=list(size=fs),titlefont=list(size=fs),zeroline=F,showgrid=T)
+   legend <- list(font=list(size=round(0.9*fs)))
+   title <- list(font=list(size=fs),color='yellow')
+   config <- list(NULL
+                 ,displaylogo=FALSE
+                 ,displayModeBar=c("hover","true")[2]
+                 ,scrollZoom=TRUE
+                 ,modeBarButtonsToRemove=list(NULL
+                                             ,"zoom2d","pan2d","toggleSpikelines"
+                                             ,"zoomIn2d","zoomOut2d"
+                                             ,"autoScale2d","resetScale2d"
+                                             ,"hoverClosestCartesian","hoverCompareCartesian"
+                                             ,"select2d","lasso2d"
+                                             )
+                # ,modeBarButtonsToAdd=list("hoverCompareCartesian")
+                 ,setBackground="orange"
+                 ,toImageButtonOptions=list(width=760,height=540,scale=1)
+                 )
    list(base=col.base,bg=col.bg,hist=col.hist,line=col.line,strip=col.strip
-       ,p0=p0)
+       ,p0=p0,axis=axis,legend=legend,title=title,font=list(size=fs),config=config)
 }
 'curveInputs' <- function(indep.mortality,mortality.cub,mortality.adult,init.den
                          ,litter,broken.C1,max.age,pregnant,sexratio,seed1
-                         ,seed2,fertility,removal.rate,removal.age
+                         ,seed2,seed3,fertility,removal.rate,removal.age
                          ,k1d,k1i,k2) {
    mortality <- mortalityTube(max.age=max.age,mortality.cub=mortality.cub
                              ,mortality.adult=mortality.adult
                              ,k1d=k1d,k1i=k1i,k2=k2)
-   tube <- mortalityTubePlot(mortality)
+   tube.lin <- mortalityTubePlot(mortality,scale="lin")
+   tube.log <- mortalityTubePlot(mortality,scale="log")
    indep.mortality <- mortality$indep
    mortality <- mortality$depend
    age <- seq(max.age)
@@ -728,8 +921,8 @@
               ,mortality.cub=mortality.cub
               ,mortality.adult=mortality.adult
               ,age=age
-              ,tube.lin=tube
-              ,tube.log=tube+scale_y_log10()
+              ,tube.lin=tube.lin
+              ,tube.log=tube.log
               ,tube.fert=fertilityCurve(age=age,u=fertility,plot=TRUE)
               ,tube.removal=removalCurve(age=age,u=removal.age,plot=TRUE)
               ,init.den=init.den
@@ -740,6 +933,7 @@
               ,sexratio=sexratio
               ,seed1=seed1
               ,seed2=seed2
+              ,seed3=seed3
               ,fertility=fertility
               ,removal.rate=removal.rate
               ,removal.age=removal.age

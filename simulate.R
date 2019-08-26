@@ -4,13 +4,23 @@
                       ,indep.fraction=NA,fertility=NA
                       ,removal.rate=NA,removal.age=NA
                       ,k1d=NA,k1i=NA,k2=NA
-                      ,seed1=NA,seed2=NA,quiet=FALSE,check=FALSE,...) {
-   isShiny <- ("shiny" %in% loadedNamespaces())
+                      ,seed1=NA,seed2=NA,seed3=NA,quiet=FALSE,check=FALSE,...) {
+   if (F) {
+      list1 <- list(...)
+      list2 <- as.list(match.call())
+     # print(names(list1))
+     # print(names(list2))
+      ind <- match(names(list1),names(list2))
+      list3 <- list2[-ind]
+      str(list3)
+   }
+   isShiny <- (("shiny" %in% loadedNamespaces())&&(length(shiny::shinyOptions())>0))
    if ((isShiny)&&(!quiet)) {
       showModal(modalDialog(title = "Simulation in progress","Please wait"
                        ,size="s",easyClose = TRUE,footer = NULL))
       on.exit(removeModal())
    }
+   eraLength <- 15L # EL: max.age(Initialization)+EL(Realization)+EL(Control/Update)
   # set.seed(NULL)
   # if (is.na(seed1)) {
   #    seed1 <- sample(100:999,1)
@@ -20,26 +30,40 @@
    seasonName <- c('0'="dens release",'1'="dens prerelease",'9'="passed away"
                   ,'8'="broken family",'7'="human-caused removal")
    update <- !is.null(history)
+   if (FALSE) {
+      if (isTRUE(seed3>0))
+         init$seed3 <- seed3
+      else {
+         set.seed(NULL)
+         seed3 <- sample(100:999,1)
+         print(c('FORCED seed3'=seed3))
+         init$seed3 <- seed3
+      }
+   }
+  # set.seed(init$seed2)
    if (update) {
      # str(history)
       init <- history$input
-      if (isTRUE(seed2<=0)) {
-         set.seed(NULL)
-         seed2 <- sample(100:999,1)
-         init$seed2 <- seed2
-        # set.seed(init$seed2) ## here1
-      }
-      set.seed(init$seed2) ## here2
+     # set.seed(init$seed3) ## here2 (seed2 or seed3)
    }
    else {
-      init <- randomize(seed1=seed1,seed2=seed2)
+      init <- randomize(seed1=seed1,seed2=seed2,seed3=seed3)
    }
    prm <- as.list(match.call())[-1]
+  # str(init)
+  # str(prm)
+  # saveRDS(prm,"updatePrm-shiny.rds")
    init <- updatePrm(init,prm)
+   if (!update)
+      set.seed(init$seed2)
+  # str(init)
+   ##~ print(c('prm$seed3'=seed3,'init$seed3'=init$seed3
+          ##~ ,'prm$seed2'=seed2,'init$seed2'=init$seed2))
   # cat("init:\n")
   # str(init)
-   for (pass in names(init))
+   for (pass in names(init)) {
       assign(pass,init[[pass]])
+   }
   # str(litterF)
    rm(litterF) ## NOT IMPLEMENTED
    if (check) {
@@ -54,6 +78,7 @@
                          ,sexratio=sexratio
                          ,seed1=seed1
                          ,seed2=seed2
+                         ,seed3=seed3
                          ,fertility=fertility
                          ,removal.rate=removal.rate
                          ,removal.age=removal.age
@@ -64,14 +89,15 @@
       return(curv)
    }
    max.age <- as.integer(round(max.age))
-   nepoch <- ifelse(update,15L,max.age+50L)
-   input <- list(max.age=max.age,litter=litter,sex=sexratio
-                ,dens=init.den,pregn=pregnant
-                ,mCOY=mortality.cub,mAdult=mortality.adult,iC1=indep.fraction[2]
-                ,indep.fraction=indep.fraction,fert=fertility
-                ,remR=removal.rate,remA=removal.age,k1d=k1d,k1i=k1i,k2=k2
-                ,seed1=seed1,seed2=seed2)
-   input2prn <- input
+   nepoch <- ifelse(update,eraLength,max.age+2L*eraLength)
+  # print(data.frame(update=update,nepoch=nepoch))
+   input2 <- list(maxA=max.age,ltr=litter,sex=sexratio
+                 ,dens=init.den,pregn=pregnant
+                 ,mCOY=mortality.cub,mAdlt=mortality.adult,iC1=indep.fraction[2]
+                 ,indep.fraction=indep.fraction,fert=fertility
+                 ,remR=removal.rate,remA=removal.age,k1d=k1d,k1i=k1i,k2=k2
+                 ,rnd1=seed1,rnd2=seed2,rnd3=seed3)
+   input2prn <- input2
    input2prn$indep.fraction <- NULL
    input2prn$sex <- NULL # 0.5 or close
    input2prn$dens <- NULL # stable (100)
@@ -125,9 +151,9 @@
      # print(head(df1,12),digits=3)
       daM$peer <- round(df1$peer[na.omit(match(daM$age,df1$age))]*(1-sexratio))
       daF$peer <- c(round(df1$peer[na.omit(match(daF$age,df1$age))]*sexratio))
-      popF <- data.frame(id=NA,epoch=0L,season=0L,born=NA,sex="F"
+      popF <- data.frame(id=NA,epoch=0L,era="",season=0L,born=NA,sex="F"
                         ,age=rep(daF$age,daF$peer),child=0L,parent=NA)
-      popM <- data.frame(id=NA,epoch=0L,season=0L,born=NA,sex="M"
+      popM <- data.frame(id=NA,epoch=0L,era="",season=0L,born=NA,sex="M"
                         ,age=rep(daM$age,daM$peer),child=0L,parent=NA)
       pop <- rbind(popM,popF)
       pop$id <- makeID(nrow(pop))
@@ -138,18 +164,20 @@
    }
    else {
       lifestory <- history$output
+      lifestory <- lifestory[lifestory$era=="R",]
       epoch0 <- max(lifestory$epoch)
-      if (epoch0<max(lifestory$age)+15) {
+      if (epoch0<max(lifestory$age)+1L*eraLength) { ## max(lifestory$age)+15L
          return(list(input=init,output=NULL))
       }
       pop <- lifestory[lifestory$epoch==epoch0 & lifestory$season==1,]
+      popInclude <- lifestory[lifestory$epoch==epoch0 & lifestory$season==0,]
       pop$epoch <- pop$epoch+1L
      # np <- -pop$child[pop$child<0]
      # str(np)
      # print(table(np))
      # q()
       base <- max(pop$born)
-      seqepoch <- seq(nepoch)
+      seqepoch <- c(seq(nepoch))
       LF <- matrix(NA,ncol=4,nrow=4
                   ,dimnames=list(c("C0","C1","C2","C3"),c("p1","p2","p3","L")))
       LF["C0",] <- c(init$litterF,init$litter)
@@ -168,6 +196,19 @@
       }
    }
    for (epoch in seqepoch) {
+      if (!update) {
+        # if (epoch==1) {
+        #    set.seed(init$seed2)
+        # }
+         if (epoch==max.age+1L*eraLength+1L) {
+           # print(c(epoch=epoch,'REAL->CONTROL set seed3'=init$seed3))
+            set.seed(init$seed3)
+         }
+      }
+      else if ((update)&&(epoch==1L)) {
+        # print(c(epoch=epoch,'UPDATE CONTROL set seed3'=init$seed3))
+         set.seed(init$seed3)
+      }
      # ursa:::.elapsedTime("A")
       verbose <- !quiet & epoch %in% c(tail(seqepoch,1))
       if (isProgressBar) {
@@ -227,10 +268,10 @@
       if (verbose)
          print(table(sexCOY))
       newera <- ifelse(update,epoch0+epoch,epoch)
-      popF0 <- data.frame(id=NA,epoch=newera,season=0L,born=base+epoch,sex="F"
-                         ,age=rep(0L,nF),child=0L,parent=NA)
-      popM0 <- data.frame(id=NA,epoch=newera,season=0L,born=base+epoch,sex="M"
-                         ,age=rep(0L,nM),child=0L,parent=NA)
+      popF0 <- data.frame(id=NA,epoch=newera,era="",season=0L,born=base+epoch
+                         ,sex="F",age=rep(0L,nF),child=0L,parent=NA)
+      popM0 <- data.frame(id=NA,epoch=newera,era="",season=0L,born=base+epoch
+                         ,sex="M",age=rep(0L,nM),child=0L,parent=NA)
      # print(nrow(pop))
       pop0 <- rbind(popM0,popF0)
       pop0$id <- makeID(nrow(pop0))
@@ -394,7 +435,7 @@
      # str(pop[pop$age==0,])
       for (i in sample(seq_along(birth))) { ## i - litter size
          b <- birth[[i]]
-         for (j in sample(seq_along(b))) { # b[j] - это возраст
+         for (j in sample(seq_along(b))) { # b[j] - this is age
             ind <- which(pop$sex=="F" & pop$age==b[j] &
                          !pop$child)# & is.na(pop$parent))
             if (!length(ind)) { ## no free females with such age
@@ -413,7 +454,7 @@
       }
      # ursa:::.elapsedTime("F")
       if (verbose) {
-        # доля бездетных, доля с годовиками, доля с двухлетками, доля с сеголет.
+        # a portion wihtouut cubs, a portion with yearlinfs, a portion with 2yrold, a portion with COYs
          ageF <- daF$age[daF$fert>0]
          indS <- which(pop$sex=="F" & pop$age %in% ageF & !pop$child)
          indP <- which(pop$child>0)
@@ -574,6 +615,14 @@
       LS[k1:k2,] <- lifestory[[i]]
       k1 <- k2+1
    }
+   LS$era <- "C"
+   if (!update) {
+     # print(c('before control'=max.age+1L*eraLength))
+      LS$era[LS$epoch<=max.age+1L*eraLength] <- "R"
+      LS$era[LS$epoch<=max.age] <- "I"
+   }
+   else
+      LS <- rbind(popInclude,LS)
    rownames(LS) <- NULL
    list(input=init,output=LS)
 }

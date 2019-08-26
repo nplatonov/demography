@@ -1,3 +1,4 @@
+#+ include=F
 source("./main.R")
 invisible({
    if (FALSE) {
@@ -14,14 +15,14 @@ invisible({
       })
       stop()
    }
-   if (!TRUE) {
+   if (F) { ## simulate
       if ((FALSE)&&(file.exists("simulation.rds")))
          file.remove("simulation.rds")
-      toUpdate <- F & file.exists("simulation.rds")
+      toUpdate <- T & file.exists("simulation.rds")
       lifestory <- if (toUpdate) readRDS("simulation.rds") else NULL
       if (TRUE) {
          if (!toUpdate) {
-            if (TRUE) {
+            if (!TRUE) {
                curv <- simulate(seed1=795,seed2=130,check=TRUE)
                saveRDS(curv,"checkInputs.rds")
                if (TRUE) {
@@ -35,22 +36,25 @@ invisible({
                      }
                   }
                }
-              # q()
+               q()
             }
-            lifestory <- simulate(seed1=795,seed2=130)
+            lifestory <- simulate(seed1=703,seed2=703)
             saveRDS(lifestory,"simulation.rds")
             q()
+           # q()
          }
-         if (TRUE) {
+         if (FALSE) {
             pdf(width=3.6,height=2.4)
             res <- perturb(lifestory)
             opW <- options(warn=1)
-            sapply(res,print)
+           # sapply(res,print)
             options(opW)
+            saveRDS(res,"perturb.rds")
            # print("A")
            # print(warnings())
            # q()
          }
+         q()
       }
       else if (TRUE) {
          lifestory <- simulate(seed1=447,seed2=840)
@@ -88,9 +92,9 @@ invisible({
                               ,seed2=NA
                               )
       else
-         stop("Что дальше?")
+         stop("Next variant?")
    }
-   else {
+   else if (F) { ## analyze
       lifestory <- readRDS("simulation.rds")
      # LS <- lifestory[lifestory$epoch==max(lifestory$epoch) & lifestory$season==0,]
      # print(nrow(LS))
@@ -99,7 +103,7 @@ invisible({
       res <- analyze(lifestory,options="all")
       saveRDS(res,"analysis.rds")
      # ursa:::.elapsedTime("============== analysis finish ================")
-      if (!FALSE) {
+      if (FALSE) {
          pdf(width=3.6,height=2.4)
          with(res,{
            # print(p7+facet_grid(age~.)+p0)
@@ -126,5 +130,21 @@ invisible({
          })
       }
    }
+   else if (T) { ## perturb
+      lifestory <- simulate(seed1=703,seed2=702,seed3=701)
+     # lifestory <- simulate(seed1=703,seed2=702,seed3=701,pregnant=0.83)
+     # str(lifestory$input)
+     # input <- randomize(seed1=703,seed2=702,seed3=701)
+     # lifestory <- simulate(seed1=703,seed2=702,seed3=701)#,quiet=!TRUE)
+     # saveRDS(lifestory,"simulation.rds")
+     # lifestory <- readRDS("simulation.rds")
+     # pop <- perturb(lifestory)
+     # pop <- perturb(lifestory)
+   }
 })
-warnings()
+# warnings()
+
+#+ echo=F, fig.width=3.8, fig.height=3.0
+#opW <- options(warn=-1)
+#res$p9$plot
+#options(opW)

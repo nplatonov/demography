@@ -11,3 +11,5 @@ _*.*
 *.rds
 FarMenu.ini
 SciTE.session 
+.Renviron
+*.knitted
