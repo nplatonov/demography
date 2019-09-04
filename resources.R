@@ -11,8 +11,7 @@
       return(basename(arglist[ind+1L]))
    ""
 }
-'fert' <- function(x,d=7,s=7,m=11.5)
-{
+'fert' <- function(x,d=7,s=7,m=11.5) {
    r1 <- x-m
    r2 <- (s+d)+(s-d)*tanh(r1)
    y <- exp(-r1*r1/(0.5*r2*r2))
@@ -48,7 +47,7 @@
       p1 <- layout(p1,xaxis=cs$axis,yaxis=cs$axis,legend=cs$legend,title=cs$title)
       p1 <- layout(p1
                   ,xaxis=list(title="Age")
-                  ,yaxis=list(title="Vulnerability to removal")
+                  ,yaxis=list(title="Vulnerability to removal",rangemode="tozero")
                   )
       prm <- cs$config
       prm[[1]] <- p1
@@ -195,7 +194,7 @@
       return(ceiling(amount))
    round(amount)
 }
-'mortalityTube' <- function(max.age,mortality.cub,adult=12,mortality.adult
+'mortalityTube' <- function(max.age,mortality.cub,adult=c(12,8)[2],mortality.adult
                            ,k1d,k1i,k2) {
    adult.range <- adult:round(c(0.9,1)[1]*max.age)
    age <- seq(max.age)
@@ -448,10 +447,10 @@
    ##~ print(GL)
    return(ret)
 }
-'randomize' <- function(seed1=NA,seed2=NA,seed3=NA,verbose=FALSE) {
-   if (T & isShiny) { ## switch to 'F'
+'randomize' <- function(seed1=NA,seed2=NA,seed3=NA,firstRun=FALSE,verbose=FALSE) {
+   if (T & firstRun) { ## switch to 'F'
       if (is.na(seed1)) {
-         seed1 <- 703 ## 267 275
+         seed1 <- 731 ## 267 275 703 602
         # seed2 <- 703 ## comment it
       }
      # seed2 <- 818 ## 818
@@ -460,28 +459,56 @@
       seed1 <- sample(100:999,1)
       seed2 <- NA
    }
+   print(data.frame(firstRun=firstRun,seed1=seed1,seed2=seed2,seed3=seed3))
    set.seed(seed1)
-   removal.rate <- sample(rexp(10e3),20)
-   res <- list(seed1=seed1
-              ,seed2=NA
-              ,seed3=NA
-              ,max.age=sample(26:40,1)
-              ,litter=round(sample(seq(1.2,2.2,by=0.01),1),6)
-              ,litterF=NA
-              ,sexratio=50
-              ,init.den=100
-              ,pregnant=round(sample(seq(0.5,0.9,by=0.01),1),6)
-              ,mortality.cub=round(sample(seq(0.25,0.45,by=0.01),1),6)
-              ,mortality.adult=round(sample(seq(0.08,0.12,by=0.002),1),6)
-              ,indep.fraction=round(c(0.001,sample(seq(0.05,0.75,by=0.05),1),0.999),6)
-              ,fertility=round(sample(seq(0.1,1.0,by=0.01),1),6)
-              ,removal.rate=round(sample(seq(-100.15,0.05,by=0.001),1),6)
-             # ,removal.rate=round(0.03*sample(removal.rate/max(removal.rate),1),3)
-              ,removal.age=round(sample(seq(0.1,1.0,by=0.01),1),6)
-              ,k1d=10
-              ,k1i=as.numeric(sample(seq(3,18),1))
-              ,k2=5
-              )
+   if (T & firstRun & (fixit <- TRUE)) {
+  ##~ mA  ltr pregn mCOY mAdlt  wC1  wC2 fert remR remA k1d k1i k2 rnd1 rnd2 rnd3
+##~ 1 38 2.18  0.78 0.38 0.086 0.25 0.65  0.6    0 0.34   5  10  5  731  801  801
+      res <- list(seed1=-1 # 731
+                 ,seed2=NA
+                 ,seed3=NA
+                 ,max.age=38
+                 ,litter=2.18
+                 ,litterF=NA
+                 ,sexratio=50
+                 ,init.den=100
+                 ,pregnant=0.78
+                 ,mortality.cub=0.38
+                 ,mortality.adult=0.086
+                 ,indep.fraction=c(0.001,0.25,0.65)
+                 ,fertility=0.6
+                 ,removal.rate=round(sample(seq(-100.15,0.05,by=0.001),1),6)
+                 ,removal.age=0.34
+                 ,k1d=5
+                 ,k1i=10
+                 ,k2=5
+                 )
+   }
+   else {
+      res <- list(seed1=seed1
+                 ,seed2=NA
+                 ,seed3=NA
+                 ,max.age=sample(26:40,1)
+                 ,litter=round(sample(seq(1.2,2.2,by=0.01),1),6)
+                 ,litterF=NA
+                 ,sexratio=50
+                 ,init.den=100
+                 ,pregnant=round(sample(seq(0.5,0.9,by=0.01),1),6)
+                 ,mortality.cub=round(sample(seq(0.25,0.45,by=0.01),1),6)
+                 ,mortality.adult=round(sample(seq(0.08,0.12,by=0.002),1),6)
+                 ,indep.fraction=round(c(0.001
+                                        ,sample(seq(0.05,0.75,by=0.05),1)
+                                        ,ifelse(T,0.95,sample(seq(0.25,0.95,by=0.05),1))
+                                        ),6)
+                 ,fertility=round(sample(seq(0.1,1.0,by=0.01),1),6)
+                 ,removal.rate=round(sample(seq(-100.15,0.05,by=0.001),1),6)
+                # ,removal.rate=round(0.03*sample(removal.rate/max(removal.rate),1),3)
+                 ,removal.age=round(sample(seq(0.1,1.0,by=0.01),1),6)
+                 ,k1d=as.numeric(sample(seq(6,14),1)) # 10
+                 ,k1i=as.numeric(sample(seq(3,18),1))
+                 ,k2=5
+                 )
+   }
    res$litterF <- litterFraction(res$litter)
    res$removal.rate[res$removal.rate<0] <- 0
   # print(res$pregnant-round(res$pregnant,6))
@@ -572,6 +599,8 @@
   # }
    if (length(old[[indep.ind]])==1)
       old[[indep.ind]] <- c(indep.fraction[1],old[[indep.ind]],indep.fraction[3])
+   else if (length(old[[indep.ind]])==2)
+      old[[indep.ind]] <- c(indep.fraction[1],old[[indep.ind]])
   # old[[indep.ind]] <- old[[indep.ind]][2]
    old
 }
@@ -595,7 +624,7 @@
    res <- res2$x
    if (length(res)<5)
       return(numeric())
-   if (T & verbose) {
+   if (F & verbose) {
       names(res) <- paste0(res2$epoch,res2$era)
       print(res)
    }
@@ -604,268 +633,6 @@
    if (verbose)
       cat(sprintf("Growth rate = %+.3f\u00B1%.3f (%d)\n",mean(res),sd(res),length(res)))
    res
-}
-'perturb' <- function(lifestory) {
-   isShiny <- ("shiny" %in% loadedNamespaces())
-   if (isShiny) {
-      showModal(modalDialog(title = "Perturbation in progress","Please wait"
-                       ,size="s",easyClose = TRUE,footer = NULL))
-      on.exit(removeModal())
-   }
-  # str(lifestory$input)
-   prmList <- c('1'="mortality.adult",'2'="mortality.cub",'3'="max.age"
-               ,'4'="litter",'5'="pregnant",'6'="indep.fraction"
-               ,'7'="fertility",'8'="k1i",'9'="k1d")
-   standardized <- c("indep.fraction","pregnant","fertility","k1i","k1d")
-   ret <- vector("list",9) # length(prmList))
-   names(ret) <- prmList
-   cs <- colorScheme()
-   if (isShiny)
-      showNotification(closeButton=TRUE,"check reference"
-                      ,id="ref",duration=99)
-   cat("---- basic -----\n")
-   growthRate(lifestory)
-   g0 <- growthRate(lifestory,nochanged_dummy=TRUE)
-   cat("---- ===== -----\n")
-   if (isShiny)
-      removeNotification(id="ref")
-   if (!length(g0))
-      return(ret)
-  # return(ret)
-   gr0 <- mean(g0)
-   agr0 <- abs(gr0)
-   sgr0 <- sign(gr0)
-   for (p in .sample(prmList)) {
-      lab <- switch(p
-                   ,'mortality.adult'="Adult mortality"
-                   ,'mortality.cub'="COY mortality"
-                   ,'max.age'="Maximal age"
-                   ,'litter'="COY litter size"
-                   ,'pregnant'="Birth success"
-                   ,'indep.fraction'="Broken yearling families"
-                   ,'fertility'="Age specific fertility"
-                   ,'k1i'="Mort. rate of ind. youngs"
-                   ,'k1d'="Mort. rate of dep. youngs"
-                   ,p)
-      prm0 <- lifestory$input[[p]]
-      if (p %in% c("indep.fraction"))
-         prm0 <- prm0[2]
-      message(paste0(lab,": ",prm0))
-      sc <- switch(p
-                  ,'mortality.adult'=-0.03
-                  ,'mortality.cub'=-0.05
-                  ,'max.age'=+0.05
-                  ,'litter'=+0.05
-                  ,'pregnant'=+0.1
-                  ,'indep.fraction'=0.2
-                  ,'fertility'=+0.1
-                  ,'k1d'=2
-                  ,'k1i'=2
-                  ,0.1)
-      if (TRUE) {
-        # print(sc)
-         if (agr0>0.005) {
-            sc <- sc*round(100*agr0)^0.75
-         }
-         if (p %in% standardized)
-            si <- c(-3,-2,-1,0,1,2,3)
-         else if (gr0>(+0.002))
-            si <- c(-3,-2,-1,0,1)*sign(sc)#*(-sgr0)
-         else if (gr0<(-0.002))
-            si <- c(-1,0,1,2,3)*sign(sc)#*(-sgr0)
-         else
-            si <- c(-2,-1,0,1,2)
-         if (p %in% standardized) {
-            prm <- prm0+si*sc
-           # print(prm)
-            if (TRUE) {
-               if (p %in% c("k1d","k1i"))
-                  indP <- prm>=1 & prm<=20
-               else
-                  indP <- prm>=0 & prm<=1
-               prm <- prm[indP]
-               si <- si[indP]
-            }
-            else if (FALSE) {
-               if (length(which(prm<0.05))>1)
-                  prm <- 0.05+prm-min(prm)
-               else if (length(which(prm>0.95))>1)
-                  prm <- 0.95-max(prm)+c(prm)
-            }
-            else {
-               indL <- which(prm<0.01)
-               if (length(indL)) {
-                  print(indL)
-               }
-            }
-           # print(prm)
-            s <- prm/prm0
-         }
-         else {
-            s <- (1+abs(sc))^si
-            prm <- prm0*s
-         }
-      }
-      else {
-         stop("damaged code")
-         si <- c(-2,-1,0,1,2)
-         s <- (1+abs(sc))^si
-        # s <- 1.1^si
-      }
-     # print(si)
-     # print(c(s=s))
-      if (isShiny)
-         showNotification(closeButton=TRUE,paste0(lab,"...")
-                         ,id=p,duration=99)
-      if (prm_validation <- TRUE) {
-         if (p %in% standardized) {
-            if (p %in% c("k1d","k1i")) {
-               prm[prm<1] <- 1
-               prm[prm>20] <- 20
-            }
-            else {
-               prm[prm<0.01] <- 0.01
-               prm[prm>0.99] <- 0.99
-            }
-         }
-      }
-      indD <- which(!duplicated(prm))
-      prm <- prm[indD]
-      prmlab <- round(prm[indD],switch(p,'max.age'=0,3))
-      res2 <- NULL
-     # print(sprintf("%+.3f\u00B1%.3f",mean(g0),sd(g0)))
-      arglist <- list(lifestory,NA)
-      names(arglist) <- c("",p)
-      desc <- rep("",length(indD))
-      res <- data.frame(xlab=s[indD],prm=prmlab,desc="",mean=NA,sd=NA)
-      si <- si[indD]
-      for (i in seq(nrow(res))) {
-        # print(prmlab[i])
-         arglist[[p]] <- prm[i]
-        # str(arglist[-1])
-         g1 <- if (si[i]==0) g0 else do.call("growthRate",arglist)
-         if (!length(g1))
-            break
-        # g1 <- growthRate(lifestory,mortality.adult=res$x[i])
-        # res$mean[i] <- mean(g1)
-        # res$sd[i] <- sd(g1)
-        # desc <- paste0(res$x[i],"\n",sprintf("%.3f\u00B1%.3f",res$mean[i],res$sd[i]))
-         desc[i] <- sprintf("%+.3f\u00B1%.3f",mean(g1),sd(g1))
-         res$mean[i] <- mean(g1)
-         res$sd[i] <- sd(g1)
-         res2 <- rbind(res2,data.frame(prm=prmlab[i],value=g1
-                                      ,desc=desc[i]))
-      }
-     # if (p %in% c("pregnant","indep.fraction"))
-     #    print(res)
-      if (isShiny)
-         removeNotification(id=p)
-      if (is.null(res2))
-         next
-      if (length(desc)==length(unique(desc))) {
-         res$desc <- factor(desc,levels=desc[order(prm)],ordered=TRUE)
-      }
-      else {
-         desc2 <- paste0(prmlab,"\n",desc)
-         res$desc <- factor(desc2,levels=desc2[order(prm)],ordered=TRUE)
-      }
-      res$xlab <- factor(paste0(prmlab,"\n",desc))
-      if (length(desc)==length(unique(desc))) {
-         res2$desc <- factor(res2$desc,levels=desc[order(prm)]
-                            ,ordered=TRUE)
-      }
-      else {
-         res2$desc <- factor(paste0(res2$prm,"\n",res2$desc)
-                            ,levels=paste0(prmlab,"\n",desc)
-                            ,ordered=TRUE)
-      }
-      names(desc) <- prmlab
-      if ("plotly" %in% loadedNamespaces()) {
-         if (T) {
-            da <- res2
-           # da <- da[sample(nrow(da)),]
-            prm <- da$prm
-            prmS <- sort(unique(prm))
-            da$prm <- as.character(prm)
-            prm0 <- as.character(prm0)
-            ind <- which(da$prm %in% prm0)
-            da$prm[ind] <- paste0("<b>",prm[ind],"</b>")
-            indS <- which(prmS %in% prm0)
-            prmS[indS] <- paste0("<b>",prmS[indS],"</b>")
-            da$prm <- factor(da$prm,level=prmS,ordered=TRUE)
-           # print(levels(da$prm))
-           # print(levels(da$desc))
-           # da$desc <- as.character(da$desc)
-            res2 <- da
-         }
-         lab <- c(x="Growth Rate",y=lab)
-         res2$label <- gsub("((.+)(\\n))*(.+)","\\4",res2$desc)
-         s1 <- plot_ly()
-         s1 <- add_trace(s1,data=res2,type="violin",split=~prm
-                        ,text=~desc
-                        ,name=~label
-                        ,hoverinfo="name"
-                        ,y=~prm,x=~value,orientation='h'
-                       # ,x=~prm,y=~value,orientation='v',showlegend=FALSE
-                        ,meanline=list(visible=T)
-                        )
-         if (FALSE)
-            s1 <- layout(s1
-                        ,xaxis=c(list(title=lab["x"]),cs$axis)
-                        ,yaxis=c(list(title=lab["y"],type="category"),cs$axis)
-                        ,legend=cs$legend
-                        )
-         else {
-            s1 <- layout(s1,xaxis=cs$axis,yaxis=cs$axis,legend=cs$legend)
-            s1 <- layout(s1
-                        ,xaxis=list(title=lab["x"])
-                        ,yaxis=list(title=lab["y"]
-                                  # ,categoryorder="array"
-                                  # ,categoryarray=prm2
-                                   )
-                        ,legend=list(orientation='v')
-                       # ,legend=list(orientation='h',x=0.5,y=1.2)
-                        )
-            prm <- cs$config
-            prm[[1]] <- s1
-            s1 <- do.call("config",prm)
-         }
-      }
-      else if (!FALSE)
-         s1 <- ggplot(res2,aes(prm,value))+
-               geom_violin(fill=cs$hist,colour=cs$base)+
-               geom_point(data=res,aes(prm,mean))+
-               xlab(lab)+ylab("Growth Rate")+
-               facet_grid(prm~.,scales="free",labeller=labeller(prm=desc))+
-               scale_x_continuous(breaks=prmlab)+
-               coord_flip()+
-               cs$p0+
-               NULL
-      else if (FALSE)
-         s1 <- ggplot(res2,aes(prm,value))+
-               geom_violin(fill=cs$hist,colour=cs$base)+
-               geom_point(data=res,aes(prm,mean))+
-               xlab(lab)+ylab("Growth Rate")+
-               facet_grid(.~desc,scales="free")+
-               scale_x_continuous(breaks=prmlab)+
-               cs$p0+
-               NULL
-      else {
-         res2$xlab <- factor(with(res2,paste0(prm,"\n",desc)))
-         s1 <- ggplot(res2,aes(xlab,value))+
-               geom_violin(fill=cs$hist,colour=cs$base)+
-               xlab(lab)+ylab("Growth Rate")+
-               geom_point(data=res,aes(xlab,mean))+
-              # geom_line(data=res,aes(xlab,mean))+
-              # facet_grid(.~desc,scales="free")+
-              # scale_x_discrete(breaks=desc)+
-               cs$p0+
-               NULL
-      }
-      ret[[p]] <- list(plot=s1,data=res2)
-     # break
-   }
-   ret
 }
 'colorScheme' <- function() {
    col.base <- c(green="#3C8D8C",blue="#428BCA",purpur="#605CA8"
@@ -903,9 +670,9 @@
        ,p0=p0,axis=axis,legend=legend,title=title,font=list(size=fs),config=config)
 }
 'curveInputs' <- function(indep.mortality,mortality.cub,mortality.adult,init.den
-                         ,litter,broken.C1,max.age,pregnant,sexratio,seed1
+                         ,litter,broken.C1,broken.C2,max.age,pregnant,sexratio,seed1
                          ,seed2,seed3,fertility,removal.rate,removal.age
-                         ,k1d,k1i,k2) {
+                         ,k1d,k1i,k2,simulate) {
    mortality <- mortalityTube(max.age=max.age,mortality.cub=mortality.cub
                              ,mortality.adult=mortality.adult
                              ,k1d=k1d,k1i=k1i,k2=k2)
@@ -916,6 +683,7 @@
    age <- seq(max.age)
    indep.fraction <- init$indep.fraction
    indep.fraction[2] <- broken.C1
+   indep.fraction[3] <- broken.C2
    ret <- list(mortality=mortality
               ,indep.mortality=indep.mortality
               ,mortality.cub=mortality.cub
@@ -940,6 +708,19 @@
               ,k1d=k1d
               ,k1i=k1i
               ,k2=k2
+              ,simulate=simulate
               )
    ret
+}
+'comparePrm' <- function(list1,list2) {
+   res <- character()
+   for (a in names(list1)) {
+      v1 <- list1[[a]]
+      v2 <- list2[[a]]
+      if (is.null(v2))
+         next
+      if (!identical(as.numeric(v1),as.numeric(v2)))
+         res <- c(res,a)
+   }
+   res
 }

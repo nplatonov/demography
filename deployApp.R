@@ -17,11 +17,13 @@ if (is.null(opShiny)) {
    opShiny <- NULL
    stop("Authentification data are not receieved")
 }
-appname <- "demography"
-appfiles <- c("about.md","analyze.R","app.R","demography.bib","interpretation.Rmd"
-            # ,"shiny-demography.R"
+appname <- c("demography","openday")[2]
+appfiles <- c("about.md","demography.bib","interpretation.Rmd",".Renviron"
              ,"IUCN_pb_subpopulations.xlsx","IUCN_pb_subpopulations.shp.zip"
-             ,"main.R","resources.R","shiny.R","simulate.R",".Renviron","resources")
+             ,"main.R","resources.R","simulate.R","analyze.R","perturb.R"
+             ,"app.R","shinyInit.R","shinyUI.R","shinyServer.R"
+             ,"www"
+             )
 appfiles
 with(opShiny,setAccountInfo(name=name,token=token,secret=secret))
 deployApp(appName=appname,appFiles=appfiles,account=opShiny$name)

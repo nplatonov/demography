@@ -14,7 +14,7 @@
    print(c(All=isAll,None=isNone,Litter=isLitter,Survival=isSurvival
           ,Structure=isStructure,GrowthRate=isGrowthRate
           ,Interbirth=isInterbirth))
-   isShiny <- ("shiny" %in% loadedNamespaces())
+   isShiny <- (("shiny" %in% loadedNamespaces())&&(length(shiny::shinyOptions())>0))
    if (isShiny)
       showModal(modalDialog(title = "Analysis in progress","Please wait"
                        ,size="s",easyClose = TRUE,footer = NULL))
@@ -360,6 +360,7 @@
          }
       }
       era <- res$era
+      res$epoch <- res$epoch-max(res$epoch[res$era %in% "I"])
       res$era[era=="I"] <- "Initialization"
       res$era[era=="R"] <- "Implementation"
       res$era[era=="C"] <- "Control"
@@ -423,8 +424,10 @@
                         )
          #p5 <- layout(p5,xaxis=list(rangemode="tozero",y=-1))
          p5 <- layout(p5
-                     ,xaxis=c(list(title="Epoch"),cs$axis)
-                     ,yaxis=c(list(title="Population Size",rangemode="tozero"),cs$axis)
+                     ,xaxis=c(list(title="Epoch",rangemode="nonnegative"),cs$axis)
+                     ,yaxis=c(list(title="Population Size"
+                                  ,range=c(0,1.04*max(init$init.den*10,da5real$size,da5ctrl$size)))
+                             ,cs$axis)
                      ,legend=c(list(orientation="v",x=NULL,y=0),cs$legend)
                      ,title=c(list(text=res$lab),cs$title)
                      )

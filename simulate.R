@@ -4,7 +4,9 @@
                       ,indep.fraction=NA,fertility=NA
                       ,removal.rate=NA,removal.age=NA
                       ,k1d=NA,k1i=NA,k2=NA
-                      ,seed1=NA,seed2=NA,seed3=NA,quiet=FALSE,check=FALSE,...) {
+                      ,seed1=NA,seed2=NA,seed3=NA,era.length=15L,output.size=45
+                      ,quiet=FALSE,check=FALSE,...) {
+   msg <- "Ready for analysis"
    if (F) {
       list1 <- list(...)
       list2 <- as.list(match.call())
@@ -20,7 +22,7 @@
                        ,size="s",easyClose = TRUE,footer = NULL))
       on.exit(removeModal())
    }
-   eraLength <- 15L # EL: max.age(Initialization)+EL(Realization)+EL(Control/Update)
+   eraLength <- era.length # EL: max.age(Initialization)+EL(Realization)+EL(Control/Update)
   # set.seed(NULL)
   # if (is.na(seed1)) {
   #    seed1 <- sample(100:999,1)
@@ -47,25 +49,25 @@
      # set.seed(init$seed3) ## here2 (seed2 or seed3)
    }
    else {
+      print(data.frame(from="simulate",seed1=seed1,seed2=seed2,seed3=seed3))
       init <- randomize(seed1=seed1,seed2=seed2,seed3=seed3)
    }
    prm <- as.list(match.call())[-1]
-  # str(init)
   # str(prm)
-  # saveRDS(prm,"updatePrm-shiny.rds")
+  # str(init)
    init <- updatePrm(init,prm)
+  # str(init)
    if (!update)
       set.seed(init$seed2)
-  # str(init)
    ##~ print(c('prm$seed3'=seed3,'init$seed3'=init$seed3
           ##~ ,'prm$seed2'=seed2,'init$seed2'=init$seed2))
   # cat("init:\n")
-  # str(init)
    for (pass in names(init)) {
       assign(pass,init[[pass]])
    }
   # str(litterF)
-   rm(litterF) ## NOT IMPLEMENTED
+  # if (!is.null(init))
+      rm(litterF) ## NOT IMPLEMENTED but TODO
    if (check) {
       curv <- curveInputs(indep.mortality=indep.mortality
                          ,mortality.cub=mortality.cub
@@ -73,6 +75,7 @@
                          ,init.den=init.den
                          ,litter=litter
                          ,broken.C1=indep.fraction[2]
+                         ,broken.C2=indep.fraction[3]
                          ,max.age=max.age
                          ,pregnant=pregnant
                          ,sexratio=sexratio
@@ -91,9 +94,10 @@
    max.age <- as.integer(round(max.age))
    nepoch <- ifelse(update,eraLength,max.age+2L*eraLength)
   # print(data.frame(update=update,nepoch=nepoch))
-   input2 <- list(maxA=max.age,ltr=litter,sex=sexratio
+   input2 <- list(mA=max.age,ltr=litter,sex=sexratio
                  ,dens=init.den,pregn=pregnant
-                 ,mCOY=mortality.cub,mAdlt=mortality.adult,iC1=indep.fraction[2]
+                 ,mCOY=mortality.cub,mAdlt=mortality.adult
+                 ,wC1=indep.fraction[2],wC2=indep.fraction[3]
                  ,indep.fraction=indep.fraction,fert=fertility
                  ,remR=removal.rate,remA=removal.age,k1d=k1d,k1i=k1i,k2=k2
                  ,rnd1=seed1,rnd2=seed2,rnd3=seed3)
@@ -260,7 +264,7 @@
             break
       })
       if (sum(tCOY)<3) {
-        # message("BREAK: population extra lost")
+         msg <- "Population extra lost"
          break
       }
       nF <- length(sexCOY[sexCOY=="F"])
@@ -587,8 +591,10 @@
       if (verbose)
          print(nrow(pop))
       size.ls <- c(object.size(lifestory)*2^(-20))
-      if ((isShiny & size.ls>30) | (!isShiny & size.ls>30)) {
+     # print(c(size=size.ls))
+      if ((isShiny & size.ls>output.size) | (!isShiny & size.ls>output.size)) {
         # nepoch <- epoch+2
+         msg <- "Population extra growth"
          break
       }
       if (toBreak)
@@ -624,5 +630,5 @@
    else
       LS <- rbind(popInclude,LS)
    rownames(LS) <- NULL
-   list(input=init,output=LS)
+   list(input=init,output=LS,message=msg)
 }
