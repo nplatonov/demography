@@ -1,4 +1,4 @@
-'analyze' <- function(LS,options="") {
+'analyze' <- function(LS,options="",verbose=FALSE) {
    if (missing(LS))
       return(list(input=NULL,p0=NULL,p1=NULL,p2=NULL,p3=NULL,p4=NULL,p5=NULL
                  ,p6=NULL,p7=NULL,p8=NULL,p9=NULL,p10=NULL))
@@ -7,13 +7,14 @@
             length(grep("all",options,ignore.case=TRUE))>0
    isLitter <- isAll | length(grep("litter",options,ignore.case=TRUE))>0 ## p7 p8 p10
    isSurvival <- isAll | length(grep("(surv|mort)",options,ignore.case=TRUE))>0 ## p9
-   isStructure <- isAll | length(grep("(struct|peer)",options,ignore.case=TRUE))>0 ## p6
+   isStructure <- isAll | length(grep("(struct|peer)",options,ignore.case=TRUE))>0 ## p6 p11
    isGrowthRate <- isAll | length(grep("(growth|popsize)",options,ignore.case=TRUE))>0 ## p5
    isInterbirth <- isAll | length(grep("interbirth",options,ignore.case=TRUE))>0 ## p1
    isDenning <- isAll | length(grep("denning",options,ignore.case=TRUE))>0 ## p2 p3 p4
-   print(c(All=isAll,None=isNone,Litter=isLitter,Survival=isSurvival
-          ,Structure=isStructure,GrowthRate=isGrowthRate
-          ,Interbirth=isInterbirth))
+   if (verbose)
+      print(c(All=isAll,None=isNone,Litter=isLitter,Survival=isSurvival
+             ,Structure=isStructure,GrowthRate=isGrowthRate
+             ,Interbirth=isInterbirth,Denning=isDenning))
    isShiny <- (("shiny" %in% loadedNamespaces())&&(length(shiny::shinyOptions())>0))
    if (isShiny)
       showModal(modalDialog(title = "Analysis in progress","Please wait"
@@ -26,12 +27,13 @@
    max.age <- max(lifestory$age)
    subad.ini <- 3
    cs <- colorScheme()
-   p0 <- theme_grey()+
-         theme(panel.background=element_rect(fill=cs$bg))+
-         theme(strip.background=element_rect(fill=cs$strip))+#,colour="red"))
-         theme(legend.margin=margin(t=-1,b=0,unit='char'))
-        # theme(legend.key.size=size(1,unit="char"))
-   p10 <- p9 <- p8 <- p7 <- p6 <- p5 <- p4 <- p3 <- p2 <- p1 <- NULL
+   p11 <- p10 <- p9 <- p8 <- p7 <- p6 <- p5 <- p4 <- p3 <- p2 <- p1 <- p0 <- NULL
+   if ("ggplot2" %in% loadedNamespaces())
+      p0 <- theme_grey()+
+            theme(panel.background=element_rect(fill=cs$bg))+
+            theme(strip.background=element_rect(fill=cs$strip))+#,colour="red"))
+            theme(legend.margin=margin(t=-1,b=0,unit='char'))
+           # theme(legend.key.size=size(1,unit="char"))
   # pdf("res1.pdf",width=8,height=4)
    res <- NULL
    natalityRate <- NA
@@ -82,11 +84,13 @@
             else
                print(da3[2,],digits=2)
             lab <- sprintf("%s\n%.2f\u00B1%.2f",names(age[i]),mean(LP),sd(LP))
+            lab3 <- sprintf("%s\n%.3f\u00B1%.3f",names(age[i]),mean(LP),sd(LP))
             if (!(names(age[i]) %in% "2Yr"))
-               res3 <- rbind(res3,data.frame(age=lab,epoch=epoch3,value=LP))
+               res3 <- rbind(res3,data.frame(age=lab,age3=lab3,epoch=epoch3,value=LP))
             if (names(age[i]) %in% c("1Yr","2Yr")[1]) {
                lab <- sprintf("%s-\n%.2f\u00B1%.2f",names(age[i]),mean(LP2),sd(LP2))
-               res3 <- rbind(res3,data.frame(age=lab,epoch=epoch3,value=LP2))
+               lab3 <- sprintf("%s-\n%.3f\u00B1%.3f",names(age[i]),mean(LP2),sd(LP2))
+               res3 <- rbind(res3,data.frame(age=lab,age3=lab3,epoch=epoch3,value=LP2))
             }
             L <- apply(res2$x,1,function(lf) {
                x <- lf/sum(lf)
@@ -98,7 +102,9 @@
             res <- rbind(res,tidyr::gather(res2,cubs,value,-epoch,-age))
          }
          res3$age <- factor(res3$age,levels=unique(res3$age),ordered=TRUE)
-         p7 <- ggplot(res,aes(epoch,value,colour=cubs))+geom_line()
+         res3$age3 <- factor(res3$age3,levels=unique(res3$age3),ordered=TRUE)
+         if ("ggplot2" %in% loadedNamespaces())
+            p7 <- ggplot(res,aes(epoch,value,colour=cubs))+geom_line()
          if (T & "plotly" %in% loadedNamespaces()) {
             res$age <- paste0("",gsub("\\n"," (",res$age),")")
            # ind <- which(res$cubs=="1")
@@ -138,11 +144,18 @@
                   facet_grid(.~age)+p0
          p8 <- list(plot=p8,data=res)
          if (T & "plotly" %in% loadedNamespaces()) {
-            lab <- strsplit(levels(res3$age),split="\\n")
             res3$label <- res3$stat <- res3$age
+            lab <- strsplit(levels(res3$age),split="\\n")
+            stat <- sapply(lab,function(x) x[2])
+            if (length(unique(stat))!=length(stat)) {
+               res3$age <- res3$age3
+               lab <- strsplit(levels(res3$age),split="\\n")
+               stat <- sapply(lab,function(x) x[2])
+            }
+            res3$age3 <- NULL
             res3$hover <- gsub("\\n","<br>",res3$age)
             levels(res3$label) <- sapply(lab,function(x) x[1])
-            levels(res3$stat) <- sapply(lab,function(x) x[2])
+            levels(res3$stat) <- stat
             ann <- levels(res3$label)
             p10 <- plot_ly()
             p10 <- add_trace(p10,data=res3,type="violin",showlegend=!FALSE
@@ -166,7 +179,9 @@
             p10 <- layout(p10,xaxis=cs$axis,yaxis=cs$axis,legend=cs$legend,title=cs$title)
             #p10 <- layout(p10,legend=list(orientation="v",x=0.8,y=1))
             p10 <- layout(p10,yaxis=list(title=""),xaxis=list(title="")
-                             ,title=list(text="Litter Production"))
+                         ,title=list(text="Litter Production")
+                         ,legend=list(orientation="v")
+                         )
             #p10 <- layout(p10,xaxis=list(type="category"))
             prm <- cs$config
             prm[[1]] <- p10
@@ -193,7 +208,8 @@
      # str(lifestory[lifestory$season==9 & lifestory$epoch==max(lifestory$epoch),])
      # str(lifestory[lifestory$season==0 & lifestory$epoch==max(lifestory$epoch),])
      # str(lifestory[lifestory$season==1 & lifestory$epoch==max(lifestory$epoch),])
-      age <- list('0Yr'=1,'1Yr'=2,'2Yr'=3,'Sub-Ad'=4:5,'Adult'=6:99)
+     # age <- list('0Yr'=1,'1Yr'=2,'2Yr'=3,'Sub-Ad'=4:5,'Adult'=6:99)
+      age <- list('0Yr'=1,'1Yr'=2,'2Yr'=3,'3Yr'=4,'4Yr'=5,'Adult'=6:99)
       res <- NULL
       ep <- max(lifestory$age)-4
       label <- rep("",length(age))
@@ -255,7 +271,7 @@
             prm[[1]] <- p9
             p9 <- do.call("config",prm)
          }
-         else
+         else if ("ggplot2" %in% loadedNamespaces())
             p9 <- ggplot(res,aes(Label,Survival))+
                   geom_violin(fill=cs$hist,colour=cs$base)+
                   xlab("Age Structure")+ylab("Actual Survival")+
@@ -292,6 +308,37 @@
                               ,colour=cs$base,width=1)+
                   p0
          p6 <- list(plot=p6,data=a1)
+         a2 <- a1
+         group <- list(0,1,2,3,4:5,6:8,9:16,16:max(a2$age))
+         grname <- sapply(group,function(x) paste0(paste(unique(range(x)),collapse="-"),"Yr"))
+         a2$group <- ""
+         for (i in seq_along(group))
+            a2$group[a2$age %in% group[[i]]] <- grname[i]
+         a2$group <- ordered(a2$group,levels=grname)
+         a2 <- aggregate(a2$size,by=list(group=a2$group),sum)
+         a2$prop <- a2$x/sum(a2$x)
+         a2$cum <- cumsum(a2$prop)
+         a2$x <- NULL
+         if ("plotly" %in% loadedNamespaces()) {
+            p11 <- plot_ly()
+            p11 <- add_trace(p11,data=a2,labels=~group,values=~prop,type="pie"
+                           # ,showlegend=FALSE
+                            ,textposition = 'inside'
+                            ,textinfo = 'label+percent'
+                            ,sort = FALSE
+                           # ,insidetextfont = list(color = '#FFFFFF')
+                           # ,hoverinfo = 'text'
+                           # ,text = ~paste('$', X1960, ' billions')
+                            )
+            p11 <- layout(p11
+                         ,legend=c(list(orientation="v"),cs$legend)
+                         ,title=c(list(text="Age groups",side="bottom"),cs$title)
+                         )
+            prm <- cs$config
+            prm[[1]] <- p11
+            p11 <- do.call("config",prm)
+         }
+         p11 <- list(plot=p11,data=a2)
       }
       if (isShiny)
          removeNotification(id="structure")
@@ -335,7 +382,7 @@
                if ((s==0)&&(j=="C")) {
                   size <- res2$size[ind2]
                   growth <- diff(size)/head(size,-1)
-                  print(size)
+                 # print(size)
                }
             }
          }
@@ -696,6 +743,7 @@
    }
    if (isShiny)
       removeModal()
+   input$subad.age <- subad.ini
    list(input=input,p0=p0,p1=p1,p2=p2,p3=p3,p4=p4,p5=p5,p6=p6,p7=p7,p8=p8,p9=p9
-       ,p10=p10)
+       ,p10=p10,p11=p11)
 }

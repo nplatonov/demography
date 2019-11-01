@@ -5,22 +5,26 @@ suppressMessages({
    require(webshot)
 })
 source("./main.R")
-height <- c("600px","273px","182px","136px") ## 600 248 165 (Chrome: 1374x736)
+height <- c('1/1'="600px",'1/2'="273px",'1/3'="182px"
+           ,'1/4'="136px",'2/3'="364px") ## 600 248 165 (Chrome: 1374x736)
 sliderWidth <- c("100%","125%","115%")[2]
 spinWidth <- c("80px","80px")
 devel <- length(grep("^[A-Z]\\:/platt",Sys.getenv("USER")))>0 & !interactive() &
    length(grep("vanilla",commandArgs(FALSE)))==0
-logpath <- "./ongoingMissed"
-#if (dir.exists(logpath))
-#   invisible(file.remove(dir(path=logpath,full.names=TRUE)))
-#sessionid <- paste0("-",paste(sample(letters,4,rep=TRUE),collapse=""))
+logpath <- "./data"
+if (dir.exists(logpath))
+   invisible(file.remove(dir(path=logpath,patter="\\.rds$",full.names=TRUE)))
+sessionid <- paste0("-",paste(sample(letters,4,rep=TRUE),collapse=""))
 if (!devel) {
   # options(shiny.launch.browser=TRUE)
 } 
 epsgList <- 3571:3576
 'plotEmpty' <- function(desc="Simulation has not been done yet") {
+   op <- par(mar=rep(1,4))
    plot(0,0,type="n",axes=FALSE,xlab="",ylab="")
    text(0,0,desc)
+   box()
+   par(op)
 }
 'shapefile' <- function(fname) {
    if (isZip <- length(grep("\\.zip$",basename(fname)))>0) {

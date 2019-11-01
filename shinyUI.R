@@ -96,7 +96,7 @@ uiDashboard <- dashboardPage(skin = "blue"
                         font-size: 0.3em;
                      }
                      .nav > li > a {
-                        padding: 8px 2.7vw; /* 8px 12px */
+                        padding: 8px 2.4vw; /* 8px 12px */
                      }
                      .modebar-group {
                         padding-left: 0px !important;
@@ -227,55 +227,54 @@ uiDashboard <- dashboardPage(skin = "blue"
                           # ,br()
                           # ,actionLink("analysis6", "Analyze"
                           #              ,icon=icon("angle-double-right"))
-                           ,sliderInput("max.age", "Max age, years"
-                                       ,width=sliderWidth
-                                       ,min=26, max=40, value=init$max.age,step=1
-                                       )
+                           ,with(initRange$max.age,sliderInput("max.age"
+                              ,"Max age, years"
+                              ,width=sliderWidth,min=from,max=to,step=by
+                              ,value=init$max.age))
                         )
                         ,column(3
-                           ,sliderInput("sexratio", "COY sex ratio (% of females)"
-                                       ,width=sliderWidth
-                                       ,min=20, max=80,value=init$sexratio,step=0.1
-                                       )
-                           ,sliderInput("init.den", "Initial number of dens"
-                                       ,width=sliderWidth
-                                       ,min=10, max=200,value=init$init.den,step=1,sep=""
-                                       )
-                           ,sliderInput("fertility", "Age specific fertility"
-                                       ,width=sliderWidth
-                                       ,min=0, max=1,value=init$fertility,step=0.01,sep=""
-                                       )
-                           ,sliderInput("removal.age","Age specific human-caused removal"
-                                       ,width=sliderWidth
-                                       ,min=0,max=1,value=init$removal.age,step=0.01
-                                       )
-                           ,sliderInput("removal.rate","2M/1F human-caused removal rate"
-                                       ,width=sliderWidth
-                                       ,min=0,max=0.05,value=init$removal.rate,step=0.001
-                                       )
+                           ,with(initRange$sexratio,sliderInput("sexratio"
+                              ,"COY sex ratio (% of females)"
+                              ,width=sliderWidth,min=from,max=to,step=by
+                              ,value=init$sexratio))
+                           ,with(initRange$init.den,sliderInput("init.den"
+                              ,"Initial number of dens"
+                              ,width=sliderWidth,min=from,max=to,step=by,sep=""
+                              ,value=init$init.den))
+                           ,with(initRange$fertility,sliderInput("fertility"
+                              ,"Age specific fertility"
+                              ,width=sliderWidth,min=from,max=to,step=by,sep=""
+                              ,value=init$fertility))
+                           ,with(initRange$removal.age,sliderInput("removal.age"
+                              ,"Age specific human-caused removal"
+                              ,width=sliderWidth,min=from,max=to,step=by,sep=""
+                              ,value=init$removal.age))
+                           ,with(initRange$removal.rate,sliderInput("removal.rate"
+                              ,"2M/1F human-caused removal rate"
+                              ,width=sliderWidth,min=from,max=to,step=by
+                              ,value=init$removal.rate))
                         )
                         ,column(3
                            ,fluidRow(NULL
-                              ,column(6
-                                 ,sliderInput("broken.C1", "Weaning C1 fraction"
-                                            # ,width=sliderWidth
-                                             ,min=0, max=1
-                                             ,value=init$indep.fraction[2],step=0.01
-                                             )
+                              ,column(9
+                                 ,with(initRange$broken.C1,sliderInput("broken.C1"
+                                    ,"Weaning C1 fraction"
+                                   # ,width=sliderWidth
+                                    ,min=from,max=to,step=by
+                                    ,value=init$indep.fraction[2]))
                               )
-                              ,column(6
-                                 ,sliderInput("broken.C2", "Weaning C2 fraction"
-                                            # ,width=sliderWidth
-                                             ,min=0, max=1
-                                             ,value=init$indep.fraction[3],step=0.01
-                                             )
+                              ,column(3
+                                 ,with(initRange$broken.C2,sliderInput("broken.C2"
+                                    ,"...C2"
+                                   # ,width=sliderWidth
+                                    ,min=from,max=to,step=by
+                                    ,value=init$indep.fraction[3]))
                               )
                            )
-                          # ,textOutput("indep.C1")
-                           ,sliderInput("litter", "Litter size C0"
-                                       ,width=sliderWidth
-                                       ,min=1.2, max=2.3,value=init$litter,step=0.01
-                                       )
+                           ,with(initRange$litter,sliderInput("litter"
+                              ,"Litter size C0"
+                              ,width=sliderWidth,min=from,max=to,step=by
+                              ,value=init$litter))
                            ,fluidRow(NULL
                               ,column(10,"Litter size proportions C0:")
                            )
@@ -293,35 +292,32 @@ uiDashboard <- dashboardPage(skin = "blue"
                            ,textOutput("mort.C2.depend")
                            ,textOutput("mort.C2.indep")
                            ,br()
-                           ,sliderInput("pregnant", "Birth success"
-                                       ,width=sliderWidth
-                                       ,min=0.2, max=1.0,value=init$pregnant
-                                       ,step=0.01
-                                       )
+                           ,with(initRange$pregnant,sliderInput("pregnant"
+                              ,"Birth success"
+                              ,width=sliderWidth,min=from,max=to,step=by
+                              ,value=init$pregnant))
                         )
                         ,column(3
-                           ,sliderInput("mortality.cub", "Dependent COY mortality"
-                                       ,width=sliderWidth
-                                       ,min=0.2, max=0.5,value=init$mortality.cub
-                                       ,step=0.01
-                                       )
-                           ,sliderInput("mortality.adult", "Adult mortality",
-                                       ,width=sliderWidth
-                                       ,min=0.08, max=0.12,value=init$mortality.adult
-                                       ,step=0.002
-                                       )
-                           ,sliderInput("k1d", "Mortality slope of dependent young"
-                                       ,width=sliderWidth
-                                       ,min=1,max=20,value=init$k1d,step=0.1
-                                       )
-                           ,sliderInput("k1i", "Mortality slope of independent youngs",
-                                       ,width=sliderWidth
-                                       ,min=1,max=20, value=init$k1i,step=0.1
-                                       )
-                           ,sliderInput("k2", "Mortality slope of aging"
-                                       ,width=sliderWidth
-                                       ,min=1, max=20, value=init$k2,step=0.1
-                                       )
+                           ,with(initRange$mortality.cub,sliderInput("mortality.cub"
+                              ,"Dependent COY mortality"
+                              ,width=sliderWidth,min=from,max=to,step=by
+                              ,value=init$mortality.cub))
+                           ,with(initRange$mortality.adult,sliderInput("mortality.adult"
+                              ,"Adult mortality",
+                              ,width=sliderWidth,min=from,max=to,step=by
+                              ,value=init$mortality.adult))
+                           ,with(initRange$k1d,sliderInput("k1d"
+                              ,"Mortality slope of dependent young"
+                              ,width=sliderWidth,min=1,max=20,step=by
+                              ,value=init$k1d))
+                           ,with(initRange$k1i,sliderInput("k1i"
+                              ,"Mortality slope of independent youngs",
+                              ,width=sliderWidth,min=1,max=20,step=by
+                              ,value=init$k1i))
+                           ,with(initRange$k2,sliderInput("k2"
+                              ,"Mortality slope of aging"
+                              ,width=sliderWidth,min=1,max=20,step=by
+                              ,value=init$k2))
                         )
                      )
                      ##~ ,fluidRow(
@@ -339,17 +335,15 @@ uiDashboard <- dashboardPage(skin = "blue"
                     # collapsible = !TRUE,collapsed=!FALSE,
                     # height = "350px",
                      ,fluidRow(NULL
-                        ,column(2
-                             # ,actionLink("simulate3","Simulate"
-                             #            ,icon=icon("angle-double-right"))
+                        ,column(4
+                           ,uiOutput("curve.surv")
                         )
-                        ,column(4,
-                           uiOutput("curve.lin")
+                        ,column(4
+                           ,uiOutput("curve.lin")
                         )
-                        ,column(4,
-                           uiOutput("curve.log")
+                        ,column(4
+                           ,uiOutput("curve.log")
                         )
-                        ,column(2)
                      )
                      ,fluidRow(NULL
                         ,column(2)
@@ -366,27 +360,26 @@ uiDashboard <- dashboardPage(skin = "blue"
                      ,fluidRow(NULL
                         ,column(3
                            ,uiOutput("plotPopSize")
-                           ,uiOutput("plotAgeStructure")
+                           ,uiOutput("plotPieAge")
                         )
                         ,column(9
                            ,fluidRow(NULL
-                              ,column(3
-                                 ,fluidRow(NULL
-                                    ,uiOutput("plotCubs")
-                                    ,uiOutput("plotDens")
-                                    ,uiOutput("plotAdults")
-                                    ,uiOutput("plotInterbirth")
-                                 )
+                              ,column(4
+                                 ,uiOutput("plotDens")
+                                 ,uiOutput("plotCubs")
+                                 ,uiOutput("plotAdults")
+                                 ,uiOutput("plotInterbirth")
                               )
-                              ,column(3
+                              ,column(4
                                  ,uiOutput("plotSurvival")
                                  ,uiOutput("plotLitterSize")
                               )
-                              ,column(3
+                              ,column(4
                                  ,uiOutput("plotLitterProduction")
+                                 ,uiOutput("plotAgeStructure")
                               )
-                              ##~ ,column(1
-                              ##~ )
+                             # ,column(3
+                             # )
                            )
                         )
                      )
@@ -425,7 +418,6 @@ uiDashboard <- dashboardPage(skin = "blue"
                            ,fluidRow(NULL
                               ,column(4
                                  ,uiOutput("plotSensitivity10")
-                                 ,uiOutput("plotSensitivity11")
                               )
                               ,column(4
                               )

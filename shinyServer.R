@@ -372,6 +372,10 @@ serverDashboard <- function(input, session, output) {
    })
    'selectivePlot' <- function(obj,ncol=3,now=FALSE,empty="Not simulated yet") {
       h <- height[ncol]
+      if (is.character(ncol)) {
+         print(ncol)
+         print(h)
+      }
       id <- basename(tempfile(pattern=""))
       if ((!now)&&(!input$simulate)) {
         # return("Simulation is not ready")
@@ -403,6 +407,9 @@ serverDashboard <- function(input, session, output) {
       output[[id]] <- renderPlot(plotEmpty(""))
       return(plotOutput(id,height=h))
    }
+   output$curve.surv <- renderUI({
+      selectivePlot(params()$tube.surv,2,now=TRUE)
+   })
    output$curve.lin <- renderUI({
      # params()$tube.lin
      # ggplotly(params()$tube.lin+theme(legend.position="none"))
@@ -501,7 +508,7 @@ serverDashboard <- function(input, session, output) {
    })
    output$plotAgeStructure <- renderUI({
      # analysis()$p6
-      selectivePlot(analysis()$p6,2)
+      selectivePlot(analysis()$p6,"1/3")
    })
    output$plotInterbirth <- renderUI({
       ##~ if (!input$simulate)
@@ -546,6 +553,9 @@ serverDashboard <- function(input, session, output) {
       ##~ res$p8 #+facet_grid(.~age)+res$p0
       selectivePlot(analysis()$p8,2)
    })
+   output$plotPieAge <- renderUI({
+      selectivePlot(analysis()$p11,"1/2")
+   })
    output$plotP8b <- renderPlot({
       if (!input$simulate)
          return(plotEmpty())
@@ -562,7 +572,7 @@ serverDashboard <- function(input, session, output) {
       ##~ if (!input$simulate)
          ##~ return(plotEmpty())
       ##~ analysis()$p10
-      selectivePlot(analysis()$p10,3)
+      selectivePlot(analysis()$p10,"1/3")
    })
    output$plotSensitivity1 <- renderUI(selectivePlot(sensitivity()[[1]],3))
    output$plotSensitivity2 <- renderUI(selectivePlot(sensitivity()[[2]],3))

@@ -6,18 +6,20 @@
       on.exit(removeModal())
    }
   # str(lifestory$input)
+  # prmDev[[1]] <- data.frame(name="mortality.adult",min=0.08,max=0.12,step=0.005)
+  # prmDev[[2]] <- data.frame(name="mortality.adult",min=0.08,max=0.12,step=0.005)
    prmList <- c('1'="mortality.adult"
                ,'2'="mortality.cub"
                ,'3'="max.age"
                ,'4'="litter"
-               ,'5'="indep.fraction1"
-               ,'6'="indep.fraction2"
-               ,'7'="pregnant"
-               ,'8'="k1i"
-               ,'9'="k1d"
-               ,'10'="fertility"
-               ,'11'="removal.rate"
+               ,'5'="broken.C1"
+               ,'6'="pregnant"
+               ,'7'="k1i"
+               ,'8'="k1d"
+               ,'9'="fertility"
+               ,'10'="removal.rate"
                )
+   canceled <- c("broken.C2")
    if (nchar(pattern)) {
       prmList <- grep(pattern,prmList,ignore.case=TRUE,value=TRUE)
    }
@@ -28,7 +30,7 @@
       else if (set=="advanced")
          prmList <- prmList[-c(1:9)]
    }
-   standardized <- c("indep.fraction1","indep.fraction2","pregnant"
+   standardized <- c("broken.C1","broken.C2","pregnant"
                     ,"fertility","k1i","k1d")
    ret <- vector("list",length(prmList))
    names(ret) <- prmList
@@ -50,8 +52,10 @@
    sgr0 <- sign(gr0)
    k <- 0L
    nk <- length(prmList)
-   str(lifestory$input)
+   initRange <- rangePrm()
+  # str(lifestory$input)
    for (p in .sample(prmList)) {
+      rng <- initRange[[p]]
       if (F & !length(grep("indep.fraction",p)))
          next
       lab <- switch(p
@@ -60,21 +64,22 @@
                    ,'max.age'="Maximal age"
                    ,'litter'="COY litter size"
                    ,'pregnant'="Birth success"
-                   ,'indep.fraction1'="Weaning C1 probability"
-                   ,'indep.fraction2'="Weaning C2 probability"
+                   ,'broken.C1'="Weaning C1 probability"
+                   ,'broken.C2'="Weaning C2 probability"
                    ,'fertility'="Age specific fertility"
                    ,'k1i'="Mort. slope of ind. youngs"
                    ,'k1d'="Mort. slope of dep. youngs"
-                   ,p)
-      if (p=="indep.fraction1") {
+                   ,'removal.rate'="Human-caused removal rate"
+                   ,paste("unspecified description for",dQuote(p)))
+      if (p=="broken.C1") {
          pname <- "indep.fraction"
          pind <- 2L
-         prm0 <- lifestory$input[["indep.fraction"]][2]
+         prm0 <- lifestory$input[[pname]][2]
       }
-      else if (p=="indep.fraction2") {
+      else if (p=="broken.C2") {
          pname <- "indep.fraction"
          pind <- 3L
-         prm0 <- lifestory$input[["indep.fraction"]][3]
+         prm0 <- lifestory$input[[pname]][3]
       }
       else {
          pname <- p
@@ -83,107 +88,68 @@
       prm00 <- lifestory$input[[pname]]
       prm0 <- prm00[pind]
       message(paste0(lab,": ",prm0))
-      sc <- switch(p
-                  ,'mortality.adult'=-0.03
-                  ,'mortality.cub'=-0.05
-                  ,'max.age'=+0.05
-                  ,'litter'=+0.05
-                  ,'pregnant'=+0.1
-                  ,'indep.fraction1'=0.2
-                  ,'indep.fraction2'=0.2
-                  ,'fertility'=+0.1
-                  ,'k1d'=2
-                  ,'k1i'=2
-                  ,0.1)
-      if (TRUE) {
-        # print(sc)
-         if (agr0>0.005) {
-            sc <- sc*round(100*agr0)^0.75
-         }
-         if (p %in% standardized)
-            si <- c(-3,-2,-1,0,1,2,3)
-         else if (gr0>(+0.002))
-            si <- c(-3,-2,-1,0,1)*sign(sc)#*(-sgr0)
-         else if (gr0<(-0.002))
-            si <- c(-1,0,1,2,3)*sign(sc)#*(-sgr0)
-         else
-            si <- c(-2,-1,0,1,2)
-         if (p %in% standardized) {
-            prm <- prm0+si*sc
-           # print(prm)
-            if (TRUE) {
-               if (p %in% c("k1d","k1i"))
-                  indP <- prm>=1 & prm<=20
-               else
-                  indP <- prm>=0 & prm<=1
-               prm <- prm[indP]
-               si <- si[indP]
-            }
-            else if (FALSE) {
-               if (length(which(prm<0.05))>1)
-                  prm <- 0.05+prm-min(prm)
-               else if (length(which(prm>0.95))>1)
-                  prm <- 0.95-max(prm)+c(prm)
-            }
-            else {
-               indL <- which(prm<0.01)
-               if (length(indL)) {
-                  print(indL)
-               }
-            }
-           # print(prm)
-            s <- prm/prm0
-         }
-         else {
-            s <- (1+abs(sc))^si
-            prm <- prm0*s
-         }
-      }
-      else {
-         stop("damaged code")
-         si <- c(-2,-1,0,1,2)
-         s <- (1+abs(sc))^si
-        # s <- 1.1^si
-      }
+      sc <- rng$forcing
+     # print(sc)
+     # if (agr0>0.005) {
+     #    sc <- sc*round(100*agr0)^0.75
+     # }
+      if (gr0>(+0.005))
+         si <- seq(-5,3)*sign(sc)#*(-sgr0)
+      else if (gr0<(-0.005))
+         si <- seq(-3,5)*sign(sc)#*(-sgr0)
+      else
+         si <- seq(-4,4)
+     # print(gr0)
      # print(si)
-     # print(c(s=s))
+      prm <- with(rng,seq(from,to,len=ifelse(agr0<0.002,11,ifelse(agr0<0.005,9,7))))
+      if (TRUE) {
+         d <- mean(diff(prm))
+         d <- round(d,-floor(log(d)/log(10)))
+         prm <- prm0+d*c(seq(-15,-1),0,seq(1,15))
+         prm <- prm[prm>=rng$from-1e-6 & prm<=rng$to+1e-6]
+        # print(prm)
+      }
+      indC <- which.min(abs(prm-prm0))
+      if (length(indC)>1)
+         indC <- .sample(indC)
+      ind <- si+indC
+      ind <- sort(ind[ind>0 & ind<=length(prm)])
+     # print(ind)
+     # prm <- prm[ind]
+     # print(prm)
+      repeat({
+         if (length(ind)<=5)
+            break
+         ind2 <- abs(range(ind)-indC)
+         ind3 <- which(ind2==max(ind2))
+         if (length(ind3)==2)
+            ind <- head(tail(ind,-1),-1)
+         else if (ind3==1)
+            ind <- tail(ind,-1)
+         else if (ind3==2)
+            ind <- head(ind,-1)
+      })
+     # print(ind)
+      prm[indC] <- prm0
+      prm <- c(na.omit(prm[ind]))
+     # print(prm)
+      indC <- which(prm==prm0)
       k <- k+1L
       if (isShiny)
          showNotification(closeButton=TRUE,paste0(lab," (",k," of ",nk,") ...")
                          ,id=p,duration=99)
-      if (prm_validation <- TRUE) {
-         if (p %in% standardized) {
-            if (p %in% c("k1d","k1i")) {
-               prm[prm<1] <- 1
-               prm[prm>20] <- 20
-            }
-            else {
-               prm[prm<0.01] <- 0.01
-               prm[prm>0.99] <- 0.99
-            }
-         }
-      }
-      indD <- which(!duplicated(prm))
-      prm <- prm[indD]
-      prmlab <- round(prm[indD],switch(p,'max.age'=0,3))
+      prmlab <- round(prm,3)
       res2 <- NULL
      # print(sprintf("%+.3f\u00B1%.3f",mean(g0),sd(g0)))
       arglist <- list(lifestory,NA)
       names(arglist) <- c("",p)
-      desc <- rep("",length(indD))
-      res <- data.frame(xlab=s[indD],prm=prmlab,desc="",mean=NA,sd=NA)
-      si <- si[indD]
+      desc <- rep("",length(prm))
+      res <- data.frame(prm=prmlab,desc="",mean=NA,sd=NA)
       for (i in seq(nrow(res))) {
-         ##~ str(p)
-         ##~ str(pname)
-         ##~ str(prm00)
          prm00[pind] <- prm[i]
-         ##~ str(prm00)
-        # print(prmlab[i])
-        # arglist[[p]] <- prm[i] ## --
          arglist[[pname]] <- prm00 ## ++
         # str(arglist[-1])
-         g1 <- if (si[i]==0) g0 else do.call("growthRate",arglist)
+         g1 <- if (i==indC) g0 else do.call("growthRate",arglist)
          if (!length(g1))
             break
         # g1 <- growthRate(lifestory,mortality.adult=res$x[i])

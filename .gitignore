@@ -1,4 +1,7 @@
 */
+!data/
+data/*.rds
+data/*.R
 
 *.Rout
 *.html
@@ -8,7 +11,6 @@
 review.xlsx
 _*.*
 *.txt
-*.rds
 FarMenu.ini
 SciTE.session 
 .Renviron

@@ -4,7 +4,7 @@
                       ,indep.fraction=NA,fertility=NA
                       ,removal.rate=NA,removal.age=NA
                       ,k1d=NA,k1i=NA,k2=NA
-                      ,seed1=NA,seed2=NA,seed3=NA,era.length=15L,output.size=45
+                      ,seed1=NA,seed2=NA,seed3=NA,era.length=c(75L,15L),output.size=90
                       ,quiet=FALSE,check=FALSE,...) {
    msg <- "Ready for analysis"
    if (F) {
@@ -22,7 +22,7 @@
                        ,size="s",easyClose = TRUE,footer = NULL))
       on.exit(removeModal())
    }
-   eraLength <- era.length # EL: max.age(Initialization)+EL(Realization)+EL(Control/Update)
+   eraLength <- rep(era.length,length=2) # EL: max.age(Initialization)+EL(Realization)+EL(Control/Update)
   # set.seed(NULL)
   # if (is.na(seed1)) {
   #    seed1 <- sample(100:999,1)
@@ -49,7 +49,7 @@
      # set.seed(init$seed3) ## here2 (seed2 or seed3)
    }
    else {
-      print(data.frame(from="simulate",seed1=seed1,seed2=seed2,seed3=seed3))
+     # print(data.frame(from="simulate",seed1=seed1,seed2=seed2,seed3=seed3))
       init <- randomize(seed1=seed1,seed2=seed2,seed3=seed3)
    }
    prm <- as.list(match.call())[-1]
@@ -66,7 +66,7 @@
       assign(pass,init[[pass]])
    }
   # str(litterF)
-  # if (!is.null(init))
+   if ("litterF" %in% names(init))
       rm(litterF) ## NOT IMPLEMENTED but TODO
    if (check) {
       curv <- curveInputs(indep.mortality=indep.mortality
@@ -92,17 +92,17 @@
       return(curv)
    }
    max.age <- as.integer(round(max.age))
-   nepoch <- ifelse(update,eraLength,max.age+2L*eraLength)
+   nepoch <- ifelse(update,eraLength[2],max.age+sum(eraLength))
   # print(data.frame(update=update,nepoch=nepoch))
    input2 <- list(mA=max.age,ltr=litter,sex=sexratio
                  ,dens=init.den,pregn=pregnant
                  ,mCOY=mortality.cub,mAdlt=mortality.adult
                  ,wC1=indep.fraction[2],wC2=indep.fraction[3]
-                 ,indep.fraction=indep.fraction,fert=fertility
-                 ,remR=removal.rate,remA=removal.age,k1d=k1d,k1i=k1i,k2=k2
-                 ,rnd1=seed1,rnd2=seed2,rnd3=seed3)
+                # ,indep.fraction=indep.fraction
+                 ,fert=fertility,remR=removal.rate,remA=removal.age
+                 ,k1d=k1d,k1i=k1i,k2=k2,rnd1=seed1,rnd2=seed2,rnd3=seed3)
    input2prn <- input2
-   input2prn$indep.fraction <- NULL
+  # input2prn$indep.fraction <- NULL
    input2prn$sex <- NULL # 0.5 or close
    input2prn$dens <- NULL # stable (100)
    if (!quiet)
@@ -170,7 +170,7 @@
       lifestory <- history$output
       lifestory <- lifestory[lifestory$era=="R",]
       epoch0 <- max(lifestory$epoch)
-      if (epoch0<max(lifestory$age)+1L*eraLength) { ## max(lifestory$age)+15L
+      if (epoch0<max(lifestory$age)+1L*eraLength[1]) { ## max(lifestory$age)+15L
          return(list(input=init,output=NULL))
       }
       pop <- lifestory[lifestory$epoch==epoch0 & lifestory$season==1,]
@@ -204,7 +204,7 @@
         # if (epoch==1) {
         #    set.seed(init$seed2)
         # }
-         if (epoch==max.age+1L*eraLength+1L) {
+         if (epoch==max.age+1L*eraLength[1]+1L) {
            # print(c(epoch=epoch,'REAL->CONTROL set seed3'=init$seed3))
             set.seed(init$seed3)
          }
@@ -310,12 +310,22 @@
       if (length(ind))
          pop$season[ind] <- 9L
       pop <- repairFamily(pop)
+      if (verbose) {
+         cat("---------------------------------------------- 20190907\n")
+         print(table(pop$season))
+         print(c(subad=subad.ini))
+         print(head(table(pop$age)))
+         
+      }
       for (i in head(seq_along(mortality),subad.ini)) { ## break family
          ind1 <- which(pop$id %in% pop$parent[pop$age==i & !is.na(pop$parent)])
          n1 <- length(ind1)
          if (!n1)
             next
          n2 <- roundAmount(unname(indep.fraction[i])*n1)
+        # n2 <- roundAmount(ifelse(i==3,1,0)*n1) ## dummy
+         if (verbose)
+            print(data.frame(i=i,indFraction=indep.fraction[i],n1=n1,n2=n2))
          if (i==1) {
             fr <- mortality[1]*2/12*1/3 ## 2/12: May-June, 1/3 late mate prob
             remate <- roundAmount(fr*n1)
@@ -353,6 +363,8 @@
             q()
          }
       }
+      if (verbose)
+         cat("---------------------------------------------- 20190907\n")
      ## mating
       ind <- which(pop$sex=="F" & !pop$child)
       peer <- table(pop$age[ind])
@@ -624,7 +636,7 @@
    LS$era <- "C"
    if (!update) {
      # print(c('before control'=max.age+1L*eraLength))
-      LS$era[LS$epoch<=max.age+1L*eraLength] <- "R"
+      LS$era[LS$epoch<=max.age+1L*eraLength[1]] <- "R"
       LS$era[LS$epoch<=max.age] <- "I"
    }
    else

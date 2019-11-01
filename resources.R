@@ -212,29 +212,69 @@
    b1 <- y1-a1*x1^k1d
   # print(c(k1=k1d,x1=x1,x2=x2,y1=y1,y2=y2,a1=a1,b1=b1,x1k=x1^k1d,x2k=x2^k1d))
    mortality[1:n] <- a1*(age[n:1]-x0l)^k1d+b1
-   i1 <- adult
-   i2 <- max.age
+  # print(round(head(mortality,adult),3))
+   d1 <- 1 # adult
+   d2 <- max.age
    x1 <- 0
-   x0r <- age[i1]-x1
-   x2 <- age[i2]-x0r
-   y1 <- mortality[i1]
-   y2 <- mortality[i2]
+   x0r <- age[d1]-x1
+   x2 <- age[d2]-x0r
+   y1 <- mortality[adult]
+   y2 <- mortality[d2]
    a2 <- (y2-y1)/(x2^k2-x1^k2)
    b2 <- y1-a2*x1^k2
-   mortality[i1:i2] <- a2*(age[i1:i2]-x0r)^k2+b2
+  # mortality[d1:d2] <- a2*(age[d1:d2]-x0r)^k2+b2
+   mortality[adult:d2] <- a2*(age[adult:d2]-x0r)^k2+b2
+  # print(round(mortality,3))
   # mortality <- c(a1*((age[n]+1)-x0l)^k1d+b1,mortality)
    indep.mortality <- c(0.999
                        ,mortality[2]*k1i^0.5
                        ,mortality[3]*k1i^0.1
                        ,mortality[4]*k1i^0.05)
+  # print(indep.mortality)
+  # q()
    indep.mortality[indep.mortality>0.999] <- 0.999
+   if (dev_of_smaller_mortality_for_dependent_C1 <- !FALSE) {
+      mortality.family <- c(mortality.cub,NA,NA,mortality.adult/2)
+      nf <- length(mortality.family)
+      y1f <- mortality.family[nf]
+      y2f <- mortality.family[1]
+      x1f <- 0
+      x0lf <- age[1]-x1f
+      x2f <- age[nf]-x0lf
+      k1f <- k1d/2
+      a1f <- (y2f-y1f)/(x2f^k1f-x1f^k1f)
+      b1f <- y1f-a1f*x1f^k1f
+      mortality.family[1:nf] <- a1f*(age[nf:1]-x0lf)^k1f+b1f
+     # print(round(mortality.family,3))
+      mortality[2:3] <- mortality.family[2:3]
+   }
+   if (F) {
+      m <- round(mortality,3)
+      names(m) <- age
+      print(head(m,12))
+      q()
+   }
    mortality[4] <- indep.mortality[4]
-   list(depend=mortality,indep=indep.mortality)
+   if (F) {
+      mortality[2] <- 0.10
+      mortality[3] <- 0.07
+      indep.mortality[2] <- 0.80
+      indep.mortality[3] <- 0.20
+   }
+   if (F)
+      indep.mortality <- mortality[seq_along(indep.mortality)]
+   ret <- list(depend=mortality,indep=indep.mortality)
+  # str(ret)
+   ret
 }
-'mortalityTubePlot' <- function(mortality,scale=c("lin","log")) {
+'mortalityTubePlot' <- function(mortality,scale=c("lin","log","surv")) {
    scale <- match.arg(scale)
    indep <- mortality$indep
    depend <- mortality$depend
+   if (scale=="surv") {
+      indep <- 1-indep
+      depend <- 1-depend
+   }
    age <- seq_along(depend)
    st <- c('indep'="Independent Youngs",'dep'="Dependent Youngs"
           ,'adult'="Adults")
@@ -269,17 +309,18 @@
       tube <- layout(tube,xaxis=cs$axis,yaxis=cs$axis,legend=cs$legend,title=cs$title)
       tube <- layout(tube
                     ,xaxis=list(title="Age")
-                    ,yaxis=list(title=paste("Mortality"
-                                  ,switch(scale,log="(log scale)","(linear scale)"))
+                    ,yaxis=list(title=switch(scale,log="Mortality (log scale)"
+                                                  ,lin="Mortality (linear scale)"
+                                                  ,surv="Survival (linear scale)")
                                ,type=switch(scale,log="log","linear")
                                )
-                    ,legend=list(x=0.2,y=1,bgcolor="transparent")
+                    ,legend=list(x=0.38,y=switch(scale,surv=0,1),bgcolor="transparent")
                     )
       prm <- cs$config
       prm[[1]] <- tube
       tube <- do.call("config",prm)
    }
-   else {
+   else if ("ggplot2" %in% loadedNamespaces()) {
       tube <- ggplot(da,aes(age,mortality,colour=status))+
          geom_point()+geom_line()+
          xlab("Age")+ylab("Mortality")+
@@ -295,6 +336,8 @@
       if (scale=="log")
          tube <- tube+scale_y_log10()
    }
+   else
+      tube <- NULL
    list(plot=tube,data=da)
 }
 'initialState' <- function(mortality,init.den,litter,max.age,sigma,removal.age
@@ -447,8 +490,28 @@
    ##~ print(GL)
    return(ret)
 }
+'rangePrm' <- function() {
+   res <- list()
+   res$litter <- list(from=1.2,to=2.3,by=0.01,forcing=+0.05)
+   res$pregnant <- list(from=0.2,to=1,by=0.01,forcing=+0.1)
+   res$mortality.cub <- list(from=0.2,to=0.5,by=0.01,forcing=-0.05)
+   res$mortality.adult <- list(from=0.08,to=0.12,by=0.002,forcing=-0.02)
+   res$broken.C1 <- list(from=0,to=1,by=0.01,forcing=+0.1)
+   res$broken.C2 <- list(from=0.99,to=1,by=0.01,forcing=+0.01)
+   res$fertility <- list(from=0,to=1,by=0.01,forcing=+0.1)
+   res$removal.rate <- list(from=0,to=0.02,by=0.001,forcing=-0.005)
+   res$removal.age <- list(from=0,to=1,by=0.01,forcing=+0.05)
+   res$k1d <- list(from=3,to=18,by=0.5,forcing=+2)
+   res$k1i <- list(from=3,to=18,by=0.5,forcing=+2)
+   res$k2 <- list(from=3,to=18,by=0.5,forcing=+2)
+   res$max.age <- list(from=26,to=40,by=1,forcing=+2)
+   res$sexratio <- list(from=20,to=80,by=1,forcing=+5)
+   res$init.den <- list(from=10,to=200,by=1,forcing=+10)
+  # res <- res[!sapply(res,is.null)]
+   res
+}
 'randomize' <- function(seed1=NA,seed2=NA,seed3=NA,firstRun=FALSE,verbose=FALSE) {
-   if (T & firstRun) { ## switch to 'F'
+   if (F & firstRun) { ## switch to 'F'
       if (is.na(seed1)) {
          seed1 <- 731 ## 267 275 703 602
         # seed2 <- 703 ## comment it
@@ -459,28 +522,29 @@
       seed1 <- sample(100:999,1)
       seed2 <- NA
    }
-   print(data.frame(firstRun=firstRun,seed1=seed1,seed2=seed2,seed3=seed3))
+  # print(data.frame(firstRun=firstRun,seed1=seed1,seed2=seed2,seed3=seed3))
    set.seed(seed1)
+   prm <- rangePrm()
    if (T & firstRun & (fixit <- TRUE)) {
   ##~ mA  ltr pregn mCOY mAdlt  wC1  wC2 fert remR remA k1d k1i k2 rnd1 rnd2 rnd3
 ##~ 1 38 2.18  0.78 0.38 0.086 0.25 0.65  0.6    0 0.34   5  10  5  731  801  801
       res <- list(seed1=-1 # 731
                  ,seed2=NA
                  ,seed3=NA
-                 ,max.age=38
+                 ,max.age=32
                  ,litter=2.18
                  ,litterF=NA
                  ,sexratio=50
-                 ,init.den=100
+                 ,init.den=40
                  ,pregnant=0.78
                  ,mortality.cub=0.38
-                 ,mortality.adult=0.086
-                 ,indep.fraction=c(0.001,0.25,0.65)
+                 ,mortality.adult=0.092
+                 ,indep.fraction=c(0.001,0.44,0.999)
                  ,fertility=0.6
                  ,removal.rate=round(sample(seq(-100.15,0.05,by=0.001),1),6)
                  ,removal.age=0.34
                  ,k1d=5
-                 ,k1i=10
+                 ,k1i=5
                  ,k2=5
                  )
    }
@@ -488,24 +552,23 @@
       res <- list(seed1=seed1
                  ,seed2=NA
                  ,seed3=NA
-                 ,max.age=sample(26:40,1)
-                 ,litter=round(sample(seq(1.2,2.2,by=0.01),1),6)
+                 ,max.age=sample(with(prm$max.age,seq(from,to,by=by)),1)
+                 ,litter=round(sample(with(prm$litter,seq(from,to,by=by)),1),6)
                  ,litterF=NA
                  ,sexratio=50
                  ,init.den=100
-                 ,pregnant=round(sample(seq(0.5,0.9,by=0.01),1),6)
-                 ,mortality.cub=round(sample(seq(0.25,0.45,by=0.01),1),6)
-                 ,mortality.adult=round(sample(seq(0.08,0.12,by=0.002),1),6)
+                 ,pregnant=round(sample(with(prm$pregnant,seq(from,to,by=by)),1),6)
+                 ,mortality.cub=round(sample(with(prm$mortality.cub,seq(from,to,by=by)),1),6)
+                 ,mortality.adult=round(sample(with(prm$mortality.adult,seq(from,to,by=by)),1),6)
                  ,indep.fraction=round(c(0.001
-                                        ,sample(seq(0.05,0.75,by=0.05),1)
-                                        ,ifelse(T,0.95,sample(seq(0.25,0.95,by=0.05),1))
+                                        ,sample(with(prm$broken.C1,seq(from,to,by=by)),1)
+                                        ,ifelse(T,1,sample(with(prm$broken.C2,seq(from,to,by=by)),1))
                                         ),6)
-                 ,fertility=round(sample(seq(0.1,1.0,by=0.01),1),6)
-                 ,removal.rate=round(sample(seq(-100.15,0.05,by=0.001),1),6)
-                # ,removal.rate=round(0.03*sample(removal.rate/max(removal.rate),1),3)
-                 ,removal.age=round(sample(seq(0.1,1.0,by=0.01),1),6)
-                 ,k1d=as.numeric(sample(seq(6,14),1)) # 10
-                 ,k1i=as.numeric(sample(seq(3,18),1))
+                 ,fertility=round(sample(with(prm$fertility,seq(from,to,by=by)),1),6)
+                 ,removal.rate=round(sample(with(prm$removal.rate,seq(-100.15,to,by=by)),1),6)
+                 ,removal.age=round(sample(with(prm$removal.age,seq(from,to,by=by)),1),6)
+                 ,k1d=as.numeric(sample(with(prm$k1d,seq(from,to,by=by)),1)) # 10
+                 ,k1i=as.numeric(sample(with(prm$k1i,seq(from,to,by=by)),1))
                  ,k2=5
                  )
    }
@@ -641,12 +704,15 @@
    col.hist <- paste0(col.base,"60")
    col.line <- paste0(col.base,"80")
    col.strip <- paste0(col.base,"60")
-   p0 <- theme_grey()+
-         theme(panel.background=element_rect(fill=col.bg))+
-         theme(strip.background=element_rect(fill=col.strip))+#,colour="red"))
-         theme(legend.margin=margin(t=-1,b=0,unit='char'))+
-         theme(strip.text.y=element_text(angle=0,hjust=0.5,vjust=0.5))
-        # theme(legend.key.size=size(1,unit="char"))
+   if ("ggplot2" %in% loadedNamespaces())
+      p0 <- theme_grey()+
+            theme(panel.background=element_rect(fill=col.bg))+
+            theme(strip.background=element_rect(fill=col.strip))+#,colour="red"))
+            theme(legend.margin=margin(t=-1,b=0,unit='char'))+
+            theme(strip.text.y=element_text(angle=0,hjust=0.5,vjust=0.5))
+           # theme(legend.key.size=size(1,unit="char"))
+   else
+      p0 <- NULL
    fs <- 12
    axis <- list(tickfont=list(size=fs),titlefont=list(size=fs),zeroline=F,showgrid=T)
    legend <- list(font=list(size=round(0.9*fs)))
@@ -655,10 +721,11 @@
                  ,displaylogo=FALSE
                  ,displayModeBar=c("hover","true")[2]
                  ,scrollZoom=TRUE
+                 ## /plotly.js-master/src/components/modebar/buttons.js 
                  ,modeBarButtonsToRemove=list(NULL
                                              ,"zoom2d","pan2d","toggleSpikelines"
                                              ,"zoomIn2d","zoomOut2d"
-                                             ,"autoScale2d","resetScale2d"
+                                             ,"autoScale2d","resetScale2d","hoverClosestPie"
                                              ,"hoverClosestCartesian","hoverCompareCartesian"
                                              ,"select2d","lasso2d"
                                              )
@@ -677,6 +744,7 @@
                              ,mortality.adult=mortality.adult
                              ,k1d=k1d,k1i=k1i,k2=k2)
    tube.lin <- mortalityTubePlot(mortality,scale="lin")
+   tube.surv <- mortalityTubePlot(mortality,scale="surv")
    tube.log <- mortalityTubePlot(mortality,scale="log")
    indep.mortality <- mortality$indep
    mortality <- mortality$depend
@@ -690,6 +758,7 @@
               ,mortality.adult=mortality.adult
               ,age=age
               ,tube.lin=tube.lin
+              ,tube.surv=tube.surv
               ,tube.log=tube.log
               ,tube.fert=fertilityCurve(age=age,u=fertility,plot=TRUE)
               ,tube.removal=removalCurve(age=age,u=removal.age,plot=TRUE)
